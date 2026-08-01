@@ -46,11 +46,11 @@ export default function EmailPreview({
   body,
   companyName,
   roleDisplayName,
-  resumeFileName = 'Aayush_Resume.pdf',
+  resumeFileName = 'Resume.pdf',
   resumeFileDataUrl,
   smtpUser,
   smtpPass,
-  senderEmail = 'dubeyaayush019@gmail.com',
+  senderEmail = 'your.email@example.com',
   onCopySubject,
   onCopyBody,
   onCopyAll,
@@ -68,20 +68,27 @@ export default function EmailPreview({
   const [copiedBody, setCopiedBody] = useState(false);
   const [copiedAll, setCopiedAll] = useState(false);
 
+  // Strip markdown formatting for email clients (mailto / clipboard)
+  const getPlainBody = (rawBody: string) => {
+    return rawBody.replace(/\*\*(.*?)\*\*/g, '$1');
+  };
+
+  const plainBody = getPlainBody(body || '');
+
   // Generate mailto link
   const mailtoUrl = `mailto:${encodeURIComponent(recipientEmail || '')}?subject=${encodeURIComponent(
     subject || ''
-  )}&body=${encodeURIComponent(body || '')}`;
+  )}&body=${encodeURIComponent(plainBody || '')}`;
 
   // Generate Gmail Web Compose URL
   const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(
     recipientEmail || ''
-  )}&su=${encodeURIComponent(subject || '')}&body=${encodeURIComponent(body || '')}`;
+  )}&su=${encodeURIComponent(subject || '')}&body=${encodeURIComponent(plainBody || '')}`;
 
   // Generate Outlook Web Compose URL
   const outlookUrl = `https://outlook.office.com/mail/deeplink/compose?to=${encodeURIComponent(
     recipientEmail || ''
-  )}&subject=${encodeURIComponent(subject || '')}&body=${encodeURIComponent(body || '')}`;
+  )}&subject=${encodeURIComponent(subject || '')}&body=${encodeURIComponent(plainBody || '')}`;
 
   const handleCopySubject = () => {
     onCopySubject();
@@ -90,15 +97,19 @@ export default function EmailPreview({
   };
 
   const handleCopyBody = () => {
-    onCopyBody();
+    navigator.clipboard.writeText(plainBody);
     setCopiedBody(true);
     setTimeout(() => setCopiedBody(false), 2000);
   };
 
   const handleCopyAll = () => {
-    onCopyAll();
+    const fullText = `To: ${recipientEmail || ''}\nSubject: ${subject}\n\n${plainBody}`;
+    navigator.clipboard.writeText(fullText);
     setCopiedAll(true);
     setTimeout(() => setCopiedAll(false), 2000);
+    if (companyName && !isLogSaved) {
+      onLogApplication();
+    }
   };
 
   // Nodemailer Direct Send via API Route
@@ -128,7 +139,7 @@ export default function EmailPreview({
         body: JSON.stringify({
           recipientEmail: recipientEmail.trim(),
           subject: subject,
-          body: body,
+          body: plainBody,
           senderEmail: senderEmail,
           smtpUser: smtpUser || senderEmail,
           smtpPass: smtpPass,
@@ -167,16 +178,31 @@ export default function EmailPreview({
     }
   };
 
+  // Render markdown bold syntax (**text**) as formatted strong HTML elements
   const renderFormattedBody = () => {
     if (!body) return <p className="text-zinc-400 italic">Body preview will appear here...</p>;
 
     const lines = body.split('\n');
-    return lines.map((line, idx) => (
-      <React.Fragment key={idx}>
-        <span>{line}</span>
-        {idx < lines.length - 1 && <br />}
-      </React.Fragment>
-    ));
+    return lines.map((line, idx) => {
+      const parts = line.split(/(\*\*.*?\*\*)/g);
+      return (
+        <React.Fragment key={idx}>
+          <span>
+            {parts.map((part, pIdx) => {
+              if (part.startsWith('**') && part.endsWith('**')) {
+                return (
+                  <strong key={pIdx} className="font-bold text-zinc-900 dark:text-zinc-100">
+                    {part.slice(2, -2)}
+                  </strong>
+                );
+              }
+              return <span key={pIdx}>{part}</span>;
+            })}
+          </span>
+          {idx < lines.length - 1 && <br />}
+        </React.Fragment>
+      );
+    });
   };
 
   return (

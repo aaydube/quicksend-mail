@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { UserProfile } from '../lib/types';
 import { User, Mail, Phone, Globe, FileText, Check, X, Sparkles, Upload, Paperclip, Trash2, Key, HelpCircle, Lock, AlertTriangle } from 'lucide-react';
 
@@ -23,6 +23,21 @@ export default function ProfileModal({
   const [showSmtpHelp, setShowSmtpHelp] = React.useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const smtpInputRef = useRef<HTMLInputElement>(null);
+
+  // Lock body & document scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add('overflow-hidden');
+      document.documentElement.classList.add('overflow-hidden');
+    } else {
+      document.body.classList.remove('overflow-hidden');
+      document.documentElement.classList.remove('overflow-hidden');
+    }
+    return () => {
+      document.body.classList.remove('overflow-hidden');
+      document.documentElement.classList.remove('overflow-hidden');
+    };
+  }, [isOpen]);
 
   React.useEffect(() => {
     setFormData(profile);
@@ -75,7 +90,7 @@ export default function ProfileModal({
   const isMissingAppPass = !formData.smtpPass?.trim();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/70 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/70 backdrop-blur-md animate-in fade-in duration-200 overflow-hidden">
       <div className="bg-white dark:bg-zinc-950 w-full max-w-xl rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6 space-y-5 shadow-2xl overflow-y-auto max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 pb-4">
@@ -153,7 +168,7 @@ export default function ProfileModal({
                   type="email"
                   value={formData.smtpUser || formData.email || ''}
                   onChange={(e) => setFormData({ ...formData, smtpUser: e.target.value })}
-                  placeholder="dubeyaayush019@gmail.com"
+                  placeholder="your.email@example.com"
                   className="w-full bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 px-3.5 py-2.5 rounded-xl font-mono-code focus:outline-none focus:border-indigo-500"
                 />
               </div>
@@ -185,7 +200,7 @@ export default function ProfileModal({
                 type="text"
                 value={formData.fullName}
                 onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                placeholder="e.g. Aayush Dubey"
+                placeholder="e.g. Your Name"
                 className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 px-3.5 py-2.5 rounded-xl font-medium focus:outline-none focus:border-indigo-500"
                 required
               />
@@ -200,7 +215,7 @@ export default function ProfileModal({
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="dubeyaayush019@gmail.com"
+                placeholder="your.email@example.com"
                 className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 px-3.5 py-2.5 rounded-xl font-mono-code focus:outline-none focus:border-indigo-500"
               />
             </div>
@@ -214,7 +229,7 @@ export default function ProfileModal({
                 type="text"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="+91 7678282879"
+                placeholder="+1 (555) 019-2831"
                 className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 px-3.5 py-2.5 rounded-xl font-mono-code focus:outline-none focus:border-indigo-500"
               />
             </div>
@@ -228,7 +243,7 @@ export default function ProfileModal({
                 type="text"
                 value={formData.yearsOfExperience}
                 onChange={(e) => setFormData({ ...formData, yearsOfExperience: e.target.value })}
-                placeholder="e.g. CS Graduate (AI/ML)"
+                placeholder="e.g. Software Engineer"
                 className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-indigo-500"
               />
             </div>
@@ -272,7 +287,7 @@ export default function ProfileModal({
                     Click to upload your Resume PDF
                   </div>
                   <div className="text-[10px] text-zinc-500">
-                    Supports .pdf files (e.g. Aayush_Resume.pdf)
+                    Supports .pdf files (e.g. Resume.pdf)
                   </div>
                 </div>
               )}

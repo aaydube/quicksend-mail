@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Mail, User, FileCode2, History, Layers, Sun, Moon, LogIn, LogOut } from 'lucide-react';
-import { useSession, signIn, signOut } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 
 interface HeaderProps {
   totalSent: number;
@@ -11,6 +11,7 @@ interface HeaderProps {
   onOpenProfile: () => void;
   onOpenTemplates: () => void;
   onOpenBatch: () => void;
+  onOpenAuth: () => void;
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
 }
@@ -22,6 +23,7 @@ export default function Header({
   onOpenProfile,
   onOpenTemplates,
   onOpenBatch,
+  onOpenAuth,
   theme,
   onToggleTheme,
 }: HeaderProps) {
@@ -131,8 +133,8 @@ export default function Header({
             </div>
           ) : (
             <button
-              onClick={() => signIn()}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-xs transition-all"
+              onClick={onOpenAuth}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-xs transition-all cursor-pointer"
               title="Sign In with NextAuth"
             >
               <LogIn className="w-3.5 h-3.5" />

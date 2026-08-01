@@ -12,11 +12,16 @@ import ToastContainer, { ToastMessage } from '../components/Toast';
 
 import { RoleType, SalutationType, EmailTemplate, UserProfile, ApplicationLog } from '../lib/types';
 import { DEFAULT_TEMPLATES, INITIAL_USER_PROFILE } from '../lib/defaultTemplates';
-import { Zap } from 'lucide-react';
+import { Zap, Loader2 } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
-  // Theme state
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  // Theme state (Default to Light Mode)
+  const [theme, setTheme] = useState<'dark' | 'light'>('light');
 
   // Tab state
   const [activeTab, setActiveTab] = useState<'composer' | 'history'>('composer');
@@ -51,11 +56,18 @@ export default function Home() {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [isLogSavedCurrent, setIsLogSavedCurrent] = useState(false);
 
+  // Redirect unauthenticated users immediately to /auth
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/auth');
+    }
+  }, [status, router]);
+
   // Load from localStorage on mount
   useEffect(() => {
     try {
       const savedTheme = localStorage.getItem('quicksend_theme') as 'dark' | 'light' | null;
-      const initialTheme = savedTheme || 'dark';
+      const initialTheme = savedTheme || 'light';
       setTheme(initialTheme);
       document.documentElement.classList.remove('dark', 'light');
       document.documentElement.classList.add(initialTheme);
@@ -72,6 +84,17 @@ export default function Home() {
       console.error('Error reading localStorage:', err);
     }
   }, []);
+
+  // Synchronize session user into profile
+  useEffect(() => {
+    if (session?.user) {
+      setProfile((prev) => ({
+        ...prev,
+        fullName: session.user?.name || prev.fullName,
+        email: session.user?.email || prev.email,
+      }));
+    }
+  }, [session]);
 
   // Handle Theme Toggle
   const handleToggleTheme = () => {
@@ -123,6 +146,18 @@ export default function Home() {
     setIsLogSavedCurrent(false);
   }, [role, customRole, salutation, customSalutation, companyName, managerName]);
 
+  // Block rendering until session is verified and user is authenticated
+  if (status === 'loading' || status === 'unauthenticated') {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 space-y-3">
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+        <span className="text-xs font-medium text-zinc-500 font-mono-code">
+          {status === 'unauthenticated' ? 'Redirecting to Sign In...' : 'Verifying session...'}
+        </span>
+      </div>
+    );
+  }
+
   // Determine active template
   const activeRoleName = role === 'Custom' ? (customRole || 'Custom Role') : role;
 
@@ -144,8 +179,8 @@ export default function Home() {
       .replace(/{company}/g, companyName.trim() || '[Company Name]')
       .replace(/{role}/g, activeRoleName)
       .replace(/{manager}/g, managerName.trim() || 'Hiring Manager')
-      .replace(/{my_name}/g, profile.fullName || 'Aayush Dubey')
-      .replace(/{email}/g, profile.email || 'dubeyaayush019@gmail.com')
+      .replace(/{my_name}/g, profile.fullName || 'Your Name')
+      .replace(/{email}/g, profile.email || 'your.email@example.com')
       .replace(/{portfolio}/g, profile.portfolioUrl || '')
       .replace(/{github}/g, profile.githubUrl || '')
       .replace(/{linkedin}/g, profile.linkedinUrl || '')
@@ -210,7 +245,7 @@ export default function Home() {
   };
 
   const handleCopyBody = () => {
-    navigator.clipboard.writeText(compiledBody);
+    navigator.clipboard.writeText(compiledBody.replace(/\*\*(.*?)\*\*/g, '$1'));
     addToast({ title: 'Email Body Copied!', description: 'Ready to paste into your mail app.', type: 'success' });
   };
 
@@ -222,7 +257,7 @@ export default function Home() {
   };
 
   const handleCopyAll = () => {
-    const fullText = `To: ${recipientEmail || ''}\nSubject: ${compiledSubject}\n\n${compiledBody}`;
+    const fullText = `To: ${recipientEmail || ''}\nSubject: ${compiledSubject}\n\n${compiledBody.replace(/\*\*(.*?)\*\*/g, '$1')}`;
     navigator.clipboard.writeText(fullText);
     addToast({ title: 'Entire Email Copied!', description: 'Copied To, Subject, and Body.', type: 'success' });
     if (companyName && !isLogSavedCurrent) {
@@ -254,6 +289,7 @@ export default function Home() {
         onOpenProfile={() => setIsProfileOpen(true)}
         onOpenTemplates={() => setIsTemplatesOpen(true)}
         onOpenBatch={() => setIsBatchOpen(true)}
+        onOpenAuth={() => router.push('/auth')}
         theme={theme}
         onToggleTheme={handleToggleTheme}
       />
@@ -306,11 +342,11 @@ export default function Home() {
                 body={compiledBody}
                 companyName={companyName}
                 roleDisplayName={activeRoleName}
-                resumeFileName={profile.resumeFileName || 'Aayush_Resume.pdf'}
+                resumeFileName={profile.resumeFileName || 'Resume.pdf'}
                 resumeFileDataUrl={profile.resumeFileDataUrl}
                 smtpUser={profile.smtpUser || profile.email}
                 smtpPass={profile.smtpPass}
-                senderEmail={profile.email || 'dubeyaayush019@gmail.com'}
+                senderEmail={profile.email || 'your.email@example.com'}
                 onCopySubject={handleCopySubject}
                 onCopyBody={handleCopyBody}
                 onCopyAll={handleCopyAll}

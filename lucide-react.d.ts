@@ -62,6 +62,9 @@ declare module 'lucide-react' {
   export const Loader2: React.ComponentType<IconProps>;
   export const Key: React.ComponentType<IconProps>;
   export const Lock: React.ComponentType<IconProps>;
+  export const LogIn: React.ComponentType<IconProps>;
+  export const LogOut: React.ComponentType<IconProps>;
+  export const KeyRound: React.ComponentType<IconProps>;
 
   const Component: React.ComponentType<IconProps>;
   export default Component;

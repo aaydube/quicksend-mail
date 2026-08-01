@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Layers, X, ArrowRight, Play, CheckCircle, Trash2 } from 'lucide-react';
 import { BatchCompany } from '../lib/types';
 
@@ -18,6 +18,18 @@ export default function BatchQueueModal({
   const [rawInput, setRawInput] = useState('');
   const [queue, setQueue] = useState<BatchCompany[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

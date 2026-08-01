@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { EmailTemplate, RoleType } from '../lib/types';
 import { FileCode2, RotateCcw, Save, X, Check, HelpCircle } from 'lucide-react';
 
@@ -24,6 +24,21 @@ export default function TemplateModal({
   const [activeTab, setActiveTab] = useState<RoleType>(selectedRole === 'Custom' ? 'Software Developer' : selectedRole);
   const [editingTemplates, setEditingTemplates] = useState<EmailTemplate[]>(templates);
   const [isSaved, setIsSaved] = useState(false);
+
+  // Lock body & document scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add('overflow-hidden');
+      document.documentElement.classList.add('overflow-hidden');
+    } else {
+      document.body.classList.remove('overflow-hidden');
+      document.documentElement.classList.remove('overflow-hidden');
+    }
+    return () => {
+      document.body.classList.remove('overflow-hidden');
+      document.documentElement.classList.remove('overflow-hidden');
+    };
+  }, [isOpen]);
 
   React.useEffect(() => {
     setEditingTemplates(templates);
@@ -55,7 +70,7 @@ export default function TemplateModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/70 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/70 backdrop-blur-md animate-in fade-in duration-200 overflow-hidden">
       <div className="bg-white dark:bg-zinc-950 w-full max-w-3xl rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6 space-y-5 shadow-2xl overflow-y-auto max-h-[90vh]">
         {/* Top bar */}
         <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 pb-4">

@@ -1,16 +1,16 @@
 import { EmailTemplate, UserProfile } from './types';
 
 export const INITIAL_USER_PROFILE: UserProfile = {
-  fullName: 'Aayush Dubey',
-  email: 'dubeyaayush019@gmail.com',
-  phone: '+91 7678282879',
-  portfolioUrl: 'https://github.com/aaydube',
-  linkedinUrl: 'https://linkedin.com/in/aaydube',
-  githubUrl: 'https://github.com/aaydube',
-  resumeUrl: 'https://drive.google.com/file/d/1_AayushDubey_Resume/view',
-  resumeFileName: 'Aayush_Resume.pdf',
-  yearsOfExperience: 'CS Graduate (AI/ML)',
-  primaryTechStack: 'Next.js, Python, RAG, LangChain, OAuth, Node.js, AI/ML'
+  fullName: 'Your Name',
+  email: 'your.email@example.com',
+  phone: '+1 (555) 019-2831',
+  portfolioUrl: 'https://yourportfolio.dev',
+  linkedinUrl: 'https://linkedin.com/in/yourprofile',
+  githubUrl: 'https://github.com/yourusername',
+  resumeUrl: '',
+  resumeFileName: 'Resume.pdf',
+  yearsOfExperience: 'Software Engineer',
+  primaryTechStack: 'Next.js, React, Node.js, TypeScript, Python'
 };
 
 export const DEFAULT_TEMPLATES: EmailTemplate[] = [
@@ -22,20 +22,20 @@ export const DEFAULT_TEMPLATES: EmailTemplate[] = [
     subject: 'Applying for Software Developer | {my_name}',
     body: `{greeting},
 
-I'm applying for the Software Developer position at {company}. I'm a Computer Science graduate specializing in AI/ML with production experience building full-stack and AI-powered applications.
+I'm writing to express my strong interest in the Software Developer position at {company}. I have hands-on experience designing, developing, and deploying scalable software solutions and full-stack applications.
 
-A few things I've shipped recently:
+A summary of my core background & achievements:
 
-- At Edufin Services, I built and launched a full-stack education consultancy platform and admin CRM in Next.js, integrating OAuth, OTP authentication, and payment processing end to end.
-- During my internship at the National Informatics Centre, I developed a RAG-based chatbot using LangChain, applying strict guardrails that cut hallucinations by roughly 80%.
-- Independently, I've built VoxHire, an AI mock-interview platform with sub-700ms voice latency, and AI Workflow Builder, a full-stack Next.js app with a visual node-execution canvas for automated marketing workflows, powered by Google Gemini and a custom RAG pipeline.
+- **Full-Stack Development**: Experienced in modern web technologies including React, Next.js, Node.js, and TypeScript to build production-grade web applications.
+- **Backend & APIs**: Skilled in designing robust RESTful APIs, database architectures, and secure user authentication systems.
+- **Problem Solving**: Passionate about writing clean, maintainable code, optimizing system performance, and shipping high-impact features.
 
-My resume is attached. I'd welcome the chance to talk about how I can contribute to your team.
+My resume is attached for your review. I would appreciate the opportunity to discuss how my skills align with your engineering goals at {company}.
 
 Best regards,
 {my_name}
 {phone} | {email}
-linkedin.com/in/aaydube | github.com/aaydube`
+{linkedin} | {github}`
   },
   {
     id: 'ai-engineer-default',
@@ -45,20 +45,20 @@ linkedin.com/in/aaydube | github.com/aaydube`
     subject: 'Applying for AI Engineer | {my_name}',
     body: `{greeting},
 
-I'm applying for the AI Engineer position at {company}. I'm a Computer Science graduate specializing in AI/ML with production experience building full-stack and AI-powered applications.
+I'm writing to express my strong interest in the AI Engineer position at {company}. I specialize in building AI-powered applications, LLM workflows, RAG pipelines, and integrating intelligent features into full-stack products.
 
-A few things I've shipped recently:
+A summary of my core background & achievements:
 
-- Developed a RAG-based chatbot using LangChain at the National Informatics Centre, applying strict guardrails that cut hallucinations by roughly 80%.
-- Built VoxHire, an AI mock-interview platform with sub-700ms voice latency, and an AI Workflow Builder with a visual node-execution canvas powered by Google Gemini and custom RAG pipelines.
-- Architected and launched full-stack applications integrating modern AI workflows with robust backend APIs.
+- **AI & LLM Systems**: Hands-on experience developing Retrieval-Augmented Generation (RAG) applications, prompt engineering, and guardrail implementations.
+- **Full-Stack AI Integration**: Skilled in connecting AI models (such as Google Gemini and OpenAI APIs) with high-performance frontend interfaces and Node.js/Python backends.
+- **Voice & Latency Optimization**: Experienced in building low-latency, real-time voice and conversational AI platforms.
 
-My resume is attached. I'd welcome the chance to talk about how I can contribute to your team.
+My resume is attached for your review. I would welcome the opportunity to discuss how my AI expertise can drive key initiatives at {company}.
 
 Best regards,
 {my_name}
 {phone} | {email}
-linkedin.com/in/aaydube | github.com/aaydube`
+{linkedin} | {github}`
   },
   {
     id: 'full-stack-default',
@@ -68,19 +68,19 @@ linkedin.com/in/aaydube | github.com/aaydube`
     subject: 'Applying for Full Stack Developer | {my_name}',
     body: `{greeting},
 
-I'm applying for the Full Stack Developer position at {company}. I'm a Computer Science graduate specializing in AI/ML with production experience building full-stack and AI-powered applications.
+I'm writing to express my strong interest in the Full Stack Developer position at {company}. I bring end-to-end expertise in engineering intuitive frontends, scalable backend services, and cloud integrations.
 
-A few things I've shipped recently:
+A summary of my core background & achievements:
 
-- At Edufin Services, I built and launched a full-stack education consultancy platform and admin CRM in Next.js, integrating OAuth, OTP authentication, and payment processing end to end.
-- Independently, I've built AI Workflow Builder, a full-stack Next.js app with a visual node-execution canvas for automated workflows, powered by Google Gemini and custom backend services.
-- Developed RAG-based chatbots and real-time voice latency AI platforms with high performance and responsive UIs.
+- **Frontend Excellence**: Proficient in React, Next.js, and modern CSS to build responsive, accessible, and high-performance user interfaces.
+- **Backend Architecture**: Experienced with Node.js, Express, databases, and third-party API integrations (OAuth, payment gateways, background jobs).
+- **Product Delivery**: Proven track record of shipping full-stack products from initial architecture design to production deployment.
 
-My resume is attached. I'd welcome the chance to talk about how I can contribute to your team.
+My resume is attached for your review. I would love the chance to connect and explore how I can contribute to the team at {company}.
 
 Best regards,
 {my_name}
 {phone} | {email}
-linkedin.com/in/aaydube | github.com/aaydube`
+{linkedin} | {github}`
   }
 ];

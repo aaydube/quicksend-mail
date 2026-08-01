@@ -16,6 +16,14 @@ html, body {
   overflow-x: hidden;
 }
 
+/* Strict Scroll Lock for Modals */
+html.overflow-hidden,
+body.overflow-hidden {
+  overflow: hidden !important;
+  height: 100vh !important;
+  touch-action: none !important;
+}
+
 html.dark,
 html.dark body {
   background-color: #09090b !important;

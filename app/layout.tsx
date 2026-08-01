@@ -28,7 +28,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${jakartaSans.variable} ${jetbrainsMono.variable} dark h-full antialiased`}
+      className={`${jakartaSans.variable} ${jetbrainsMono.variable} light h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
         <SessionProviderWrapper>{children}</SessionProviderWrapper>
