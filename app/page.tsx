@@ -209,15 +209,21 @@ export default function Home() {
     templates.find((t) => t.role === role) || templates.find((t) => t.role === 'Software Developer') || templates[0];
 
   // Helper to compile placeholders into final text (supports {company}, [Company Name], {greeting}, etc.)
-  const compileTemplate = (rawText: string, overrideCompany?: string, overrideEmail?: string): string => {
+  const compileTemplate = (
+    rawText: string,
+    overrideCompany?: string,
+    overrideEmail?: string,
+    overrideRoleName?: string
+  ): string => {
     if (!rawText) return '';
     const targetCompany = overrideCompany !== undefined ? overrideCompany : companyName;
     const targetEmail = overrideEmail !== undefined ? overrideEmail : recipientEmail;
+    const targetRole = overrideRoleName !== undefined ? overrideRoleName : activeRoleName;
 
     let compiled = rawText
       .replace(/{greeting}|Dear Ma'am\/Sir/g, activeGreeting)
       .replace(/{company}|\[Company Name\]|\[company\]/gi, targetCompany.trim() || '[Company Name]')
-      .replace(/{role}|\[Role\]|\[role\]/gi, activeRoleName)
+      .replace(/{role}|\[Role\]|\[role\]/gi, targetRole)
       .replace(/{manager}|\[Hiring Manager\]|\[manager\]/gi, managerName.trim() || 'Hiring Manager')
       .replace(/{my_name}/g, profile.fullName || 'Your Name')
       .replace(/{email}/g, profile.email || 'your.email@example.com')
@@ -227,12 +233,12 @@ export default function Home() {
       .replace(/{phone}/g, profile.phone || '')
       .replace(/{recipient_email}/g, targetEmail || '');
 
-    // If in Custom role mode and template still contains legacy literal titles, replace them with activeRoleName
-    if (role === 'Custom' && customRole.trim()) {
+    // If in Custom role mode and template still contains legacy literal titles, replace them with targetRole
+    if ((role === 'Custom' || targetRole !== 'Software Developer') && customRole.trim()) {
       compiled = compiled
-        .replace(/Software Developer/g, activeRoleName)
-        .replace(/AI Engineer/g, activeRoleName)
-        .replace(/Full Stack Developer/g, activeRoleName);
+        .replace(/Software Developer/g, targetRole)
+        .replace(/AI Engineer/g, targetRole)
+        .replace(/Full Stack Developer/g, targetRole);
     }
 
     return compiled;
@@ -354,7 +360,8 @@ export default function Home() {
   // Select batch item and send direct email simultaneously
   const handleSelectAndSendBatchItem = async (
     company: string,
-    email: string
+    email: string,
+    itemRole?: string
   ): Promise<{ success: boolean; error?: string }> => {
     if (!email.trim()) {
       addToast({ title: 'Recipient Email Required', description: 'No email found for item.', type: 'warning' });
@@ -363,6 +370,20 @@ export default function Home() {
 
     setCompanyName(company);
     setRecipientEmail(email);
+
+    if (itemRole) {
+      if (['Software Developer', 'AI Engineer', 'Full Stack Developer'].includes(itemRole)) {
+        setRole(itemRole as RoleType);
+      } else {
+        setRole('Custom');
+        setCustomRole(itemRole);
+      }
+    }
+
+    const effectiveRoleName = itemRole || activeRoleName;
+    const effectiveTemplate = itemRole
+      ? templates.find((t) => t.role === itemRole) || currentTemplate
+      : currentTemplate;
 
     if (!profile.smtpPass?.trim()) {
       addToast({
@@ -374,8 +395,8 @@ export default function Home() {
       return { success: false, error: 'SMTP App Password missing' };
     }
 
-    const compiledSubj = compileTemplate(rawSubject, company, email);
-    const compiledBdy = compileTemplate(rawBody, company, email);
+    const compiledSubj = compileTemplate(effectiveTemplate.subject, company, email, effectiveRoleName);
+    const compiledBdy = compileTemplate(effectiveTemplate.body, company, email, effectiveRoleName);
     const plainBdy = compiledBdy.replace(/\*\*(.*?)\*\*/g, '$1');
 
     try {
@@ -408,7 +429,7 @@ export default function Home() {
           timestamp: Date.now(),
           companyName: company.trim(),
           recipientEmail: email.trim(),
-          role: activeRoleName,
+          role: effectiveRoleName,
           managerName: managerName.trim(),
           subject: compiledSubj,
           body: plainBdy,
@@ -578,10 +599,22 @@ export default function Home() {
       <BatchQueueModal
         isOpen={isBatchOpen}
         onClose={() => setIsBatchOpen(false)}
-        onSelectBatchItem={(company, email) => {
+        selectedRole={role}
+        onSelectRole={setRole}
+        customRole={customRole}
+        onSelectCustomRole={setCustomRole}
+        onSelectBatchItem={(company, email, itemRole) => {
           setCompanyName(company);
           setRecipientEmail(email);
-          addToast({ title: `Loaded ${company}`, description: email, type: 'success' });
+          if (itemRole) {
+            if (['Software Developer', 'AI Engineer', 'Full Stack Developer'].includes(itemRole)) {
+              setRole(itemRole as RoleType);
+            } else {
+              setRole('Custom');
+              setCustomRole(itemRole);
+            }
+          }
+          addToast({ title: `Loaded ${company}`, description: `${email} (${itemRole || activeRoleName})`, type: 'success' });
         }}
         onSelectAndSendBatchItem={handleSelectAndSendBatchItem}
       />

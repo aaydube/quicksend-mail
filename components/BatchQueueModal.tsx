@@ -1,19 +1,27 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Layers, X, ArrowRight, Play, CheckCircle, Trash2, Zap, Loader2, AlertCircle } from 'lucide-react';
-import { BatchCompany } from '../lib/types';
+import { Layers, X, ArrowRight, Play, CheckCircle, Trash2, Zap, Loader2, AlertCircle, Briefcase } from 'lucide-react';
+import { BatchCompany, RoleType } from '../lib/types';
 
 interface BatchQueueModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectBatchItem: (company: string, email: string) => void;
-  onSelectAndSendBatchItem?: (company: string, email: string) => Promise<{ success: boolean; error?: string }>;
+  selectedRole?: RoleType;
+  onSelectRole?: (role: RoleType) => void;
+  customRole?: string;
+  onSelectCustomRole?: (custom: string) => void;
+  onSelectBatchItem: (company: string, email: string, role?: string) => void;
+  onSelectAndSendBatchItem?: (company: string, email: string, role?: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 export default function BatchQueueModal({
   isOpen,
   onClose,
+  selectedRole,
+  onSelectRole,
+  customRole,
+  onSelectCustomRole,
   onSelectBatchItem,
   onSelectAndSendBatchItem,
 }: BatchQueueModalProps) {
@@ -44,6 +52,7 @@ export default function BatchQueueModal({
       const parts = line.split(/[,:\t]+/).map((p) => p.trim());
       let company = parts[0] || '';
       let email = parts[1] || '';
+      let itemRole = parts[2] || '';
 
       if (company.includes('@') && !email) {
         email = company;
@@ -55,6 +64,7 @@ export default function BatchQueueModal({
           id: `batch-${Date.now()}-${idx}`,
           companyName: company || 'Company',
           recipientEmail: email || '',
+          role: itemRole || selectedRole || 'Software Developer',
           status: 'pending',
         });
       }
@@ -66,7 +76,8 @@ export default function BatchQueueModal({
 
   const handleLoadItem = (index: number) => {
     if (queue[index]) {
-      onSelectBatchItem(queue[index].companyName, queue[index].recipientEmail);
+      const itemRole = queue[index].role || selectedRole || 'Software Developer';
+      onSelectBatchItem(queue[index].companyName, queue[index].recipientEmail, itemRole);
       setCurrentIndex(index);
       setQueue((prev) =>
         prev.map((item, i) => (i === index ? { ...item, status: 'completed' } : item))
@@ -84,7 +95,8 @@ export default function BatchQueueModal({
     setCurrentIndex(index);
     setQueue((prev) => prev.map((item, i) => (i === index ? { ...item, status: 'sending' } : item)));
 
-    const res = await onSelectAndSendBatchItem(queue[index].companyName, queue[index].recipientEmail);
+    const itemRole = queue[index].role || selectedRole || 'Software Developer';
+    const res = await onSelectAndSendBatchItem(queue[index].companyName, queue[index].recipientEmail, itemRole);
 
     if (res.success) {
       setQueue((prev) => prev.map((item, i) => (i === index ? { ...item, status: 'sent' } : item)));
@@ -97,9 +109,10 @@ export default function BatchQueueModal({
     if (queue.length === 0) return;
     await handleSelectAndSendItem(currentIndex);
     const nextIdx = currentIndex + 1 < queue.length ? currentIndex + 1 : currentIndex;
-    if (nextIdx !== currentIndex) {
+    if (nextIdx !== currentIndex && queue[nextIdx]) {
       setCurrentIndex(nextIdx);
-      onSelectBatchItem(queue[nextIdx].companyName, queue[nextIdx].recipientEmail);
+      const nextRole = queue[nextIdx].role || selectedRole || 'Software Developer';
+      onSelectBatchItem(queue[nextIdx].companyName, queue[nextIdx].recipientEmail, nextRole);
     }
   };
 
@@ -111,7 +124,8 @@ export default function BatchQueueModal({
       if (queue[i].status !== 'sent') {
         setCurrentIndex(i);
         setQueue((prev) => prev.map((item, idx) => (idx === i ? { ...item, status: 'sending' } : item)));
-        const res = await onSelectAndSendBatchItem(queue[i].companyName, queue[i].recipientEmail);
+        const itemRole = queue[i].role || selectedRole || 'Software Developer';
+        const res = await onSelectAndSendBatchItem(queue[i].companyName, queue[i].recipientEmail, itemRole);
         if (res.success) {
           setQueue((prev) => prev.map((item, idx) => (idx === i ? { ...item, status: 'sent' } : item)));
         } else {
@@ -141,10 +155,49 @@ export default function BatchQueueModal({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-zinc-400 hover:text-zinc-900 dark:hover:text-white rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            className="p-1.5 text-zinc-400 hover:text-zinc-900 dark:hover:text-white rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
+        </div>
+
+        {/* Target Role Dropdown Control Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 rounded-xl">
+          <div className="flex items-center gap-2.5">
+            <div className="p-1.5 rounded-lg bg-indigo-600 text-white shrink-0">
+              <Briefcase className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 block">Target Role</span>
+              <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block">Template applied to batch dispatch</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <select
+              value={selectedRole || 'Software Developer'}
+              onChange={(e) => {
+                const newRole = e.target.value as RoleType;
+                if (onSelectRole) onSelectRole(newRole);
+              }}
+              className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 text-xs font-semibold rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer shadow-xs"
+            >
+              <option value="Software Developer">Software Developer</option>
+              <option value="AI Engineer">AI Engineer</option>
+              <option value="Full Stack Developer">Full Stack Developer</option>
+              <option value="Custom">Custom Role</option>
+            </select>
+
+            {selectedRole === 'Custom' && onSelectCustomRole && (
+              <input
+                type="text"
+                value={customRole || ''}
+                onChange={(e) => onSelectCustomRole(e.target.value)}
+                placeholder="Enter custom role..."
+                className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 text-xs rounded-lg px-2.5 py-1.5 w-36 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            )}
+          </div>
         </div>
 
         {/* Input box */}
@@ -157,15 +210,15 @@ export default function BatchQueueModal({
               <textarea
                 value={rawInput}
                 onChange={(e) => setRawInput(e.target.value)}
-                rows={8}
+                rows={7}
                 placeholder={`Example format:
 Google, hr@google.com
-OpenAI, jobs@openai.com
-Stripe, recruiting@stripe.com`}
+OpenAI, jobs@openai.com, AI Engineer
+Stripe, recruiting@stripe.com, Software Developer`}
                 className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 p-3.5 rounded-xl text-xs font-mono-code leading-relaxed resize-none focus:outline-none focus:border-indigo-500"
               />
               <p className="text-[11px] text-zinc-500 font-medium">
-                Supported delimiters: comma (,), colon (:), tab, or newlines.
+                Supported format: Company, Email, [Optional Role Override].
               </p>
             </div>
 
@@ -248,6 +301,7 @@ Stripe, recruiting@stripe.com`}
                 const isSent = item.status === 'sent';
                 const isSending = item.status === 'sending';
                 const isFailed = item.status === 'failed';
+                const itemRole = item.role || selectedRole || 'Software Developer';
 
                 return (
                   <div
@@ -276,8 +330,27 @@ Stripe, recruiting@stripe.com`}
                         <div className="font-semibold text-zinc-900 dark:text-zinc-100 truncate">
                           {item.companyName}
                         </div>
-                        <div className="text-[11px] font-mono-code text-zinc-500 truncate">
-                          {item.recipientEmail}
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-[11px] font-mono-code text-zinc-500 truncate">
+                            {item.recipientEmail}
+                          </span>
+                          <span className="text-zinc-300 dark:text-zinc-700 text-xs">•</span>
+                          <select
+                            value={itemRole}
+                            onChange={(e) => {
+                              const newRole = e.target.value;
+                              setQueue((prev) =>
+                                prev.map((q, i) => (i === idx ? { ...q, role: newRole } : q))
+                              );
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-[10px] font-semibold rounded px-1.5 py-0.5 border border-zinc-200 dark:border-zinc-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer shrink-0"
+                          >
+                            <option value="Software Developer">Software Dev</option>
+                            <option value="AI Engineer">AI Engineer</option>
+                            <option value="Full Stack Developer">Full Stack</option>
+                            <option value="Custom">{customRole ? `Custom (${customRole})` : 'Custom'}</option>
+                          </select>
                         </div>
                       </div>
                     </div>
