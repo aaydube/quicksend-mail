@@ -26,6 +26,9 @@ export default function Home() {
   // Tab state
   const [activeTab, setActiveTab] = useState<'composer' | 'history'>('composer');
 
+  // Scroll Position for Parallax Motion
+  const [scrollY, setScrollY] = useState(0);
+
   // Input states
   const [role, setRole] = useState<RoleType>('Software Developer');
   const [customRole, setCustomRole] = useState<string>('');
@@ -62,6 +65,13 @@ export default function Home() {
       router.push('/auth');
     }
   }, [status, router]);
+
+  // Scroll parallax listener
+  useEffect(() => {
+    const handleScroll = () => setScrollY(window.scrollY);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -121,10 +131,13 @@ export default function Home() {
   };
 
   // Save changes to localStorage & PostgreSQL database
-  const saveTemplates = async (newTemplates: EmailTemplate[]) => {
+  const saveTemplates = async (newTemplates: EmailTemplate[], showToast: boolean = false) => {
     setTemplates(newTemplates);
     localStorage.setItem('quicksend_templates', JSON.stringify(newTemplates));
-    addToast({ title: 'Templates Saved', description: 'Saved to your profile & database.', type: 'success' });
+    
+    if (showToast) {
+      addToast({ title: 'Templates Saved', description: 'Saved to your profile & database.', type: 'success' });
+    }
 
     // Sync to PostgreSQL
     if (session?.user?.email) {
@@ -163,12 +176,12 @@ export default function Home() {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  // Reset custom overrides whenever role or company or salutation changes
+  // Reset custom overrides only when changing role
   useEffect(() => {
     setCustomSubject(null);
     setCustomBody(null);
     setIsLogSavedCurrent(false);
-  }, [role, customRole, salutation, customSalutation, companyName, managerName]);
+  }, [role, customRole]);
 
   // Block rendering until session is verified and user is authenticated
   if (status === 'loading' || status === 'unauthenticated') {
@@ -195,14 +208,14 @@ export default function Home() {
   const currentTemplate =
     templates.find((t) => t.role === (role === 'Custom' ? 'Software Developer' : role)) || templates[0];
 
-  // Helper to compile placeholders into final text
+  // Helper to compile placeholders into final text (supports {company}, [Company Name], {greeting}, etc.)
   const compileTemplate = (rawText: string): string => {
     if (!rawText) return '';
     return rawText
-      .replace(/{greeting}/g, activeGreeting)
-      .replace(/{company}/g, companyName.trim() || '[Company Name]')
-      .replace(/{role}/g, activeRoleName)
-      .replace(/{manager}/g, managerName.trim() || 'Hiring Manager')
+      .replace(/{greeting}|Dear Ma'am\/Sir/g, activeGreeting)
+      .replace(/{company}|\[Company Name\]|\[company\]/gi, companyName.trim() || '[Company Name]')
+      .replace(/{role}|\[Role\]|\[role\]/gi, activeRoleName)
+      .replace(/{manager}|\[Hiring Manager\]|\[manager\]/gi, managerName.trim() || 'Hiring Manager')
       .replace(/{my_name}/g, profile.fullName || 'Your Name')
       .replace(/{email}/g, profile.email || 'your.email@example.com')
       .replace(/{portfolio}/g, profile.portfolioUrl || '')
@@ -212,8 +225,12 @@ export default function Home() {
       .replace(/{recipient_email}/g, recipientEmail || '');
   };
 
-  const compiledSubject = customSubject !== null ? customSubject : compileTemplate(currentTemplate.subject);
-  const compiledBody = customBody !== null ? customBody : compileTemplate(currentTemplate.body);
+  // Compile raw template OR custom edited text through compileTemplate
+  const rawSubject = customSubject !== null ? customSubject : currentTemplate.subject;
+  const rawBody = customBody !== null ? customBody : currentTemplate.body;
+
+  const compiledSubject = compileTemplate(rawSubject);
+  const compiledBody = compileTemplate(rawBody);
 
   // Clear inputs
   const handleClearInputs = () => {
@@ -230,11 +247,29 @@ export default function Home() {
 
   // Insert variable into body
   const insertPlaceholderIntoComposer = (token: string) => {
-    setCustomBody((prev) => {
-      const current = prev !== null ? prev : compiledBody;
-      return current + ` ${token}`;
-    });
+    const current = customBody !== null ? customBody : currentTemplate.body;
+    const newBody = current + ` ${token}`;
+    handleUpdateBody(newBody);
     addToast({ title: `Token ${token} added to body`, type: 'info' });
+  };
+
+  // Live Body update handler
+  const handleUpdateBody = (newBody: string) => {
+    setCustomBody(newBody);
+    const targetRole = role === 'Custom' ? 'Software Developer' : role;
+    const updatedTemplates = templates.map((t) =>
+      t.role === targetRole ? { ...t, body: newBody } : t
+    );
+    saveTemplates(updatedTemplates, false);
+  };
+
+  const handleUpdateSubject = (newSubject: string) => {
+    setCustomSubject(newSubject);
+    const targetRole = role === 'Custom' ? 'Software Developer' : role;
+    const updatedTemplates = templates.map((t) =>
+      t.role === targetRole ? { ...t, subject: newSubject } : t
+    );
+    saveTemplates(updatedTemplates, false);
   };
 
   // Log Application Action
@@ -304,8 +339,14 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col font-sans selection:bg-indigo-500 selection:text-white pb-12 bg-slate-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
-      {/* Navbar Header */}
+    <div className="min-h-screen flex flex-col font-sans selection:bg-indigo-500 selection:text-white bg-slate-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 relative">
+      {/* Scroll-Driven Parallax Background Glow Accent Orbs */}
+      <div
+        className="fixed top-[-100px] left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-gradient-to-tr from-indigo-500/15 via-purple-500/10 to-cyan-500/10 rounded-full blur-3xl pointer-events-none -z-10 transition-transform duration-100 ease-out"
+        style={{ transform: `translate(-50%, ${scrollY * 0.18}px)` }}
+      />
+
+      {/* Navbar Header (Fixed Sticky Top Pin) */}
       <Header
         totalSent={applicationLogs.length}
         activeTab={activeTab}
@@ -316,10 +357,11 @@ export default function Home() {
         onOpenAuth={() => router.push('/auth')}
         theme={theme}
         onToggleTheme={handleToggleTheme}
+        profile={profile}
       />
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-6">
+      {/* Main Content Area with top padding so fixed header never covers content */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 pt-20 pb-12">
         {activeTab === 'composer' ? (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* Left Column: Input Form (5 cols) */}
@@ -345,7 +387,7 @@ export default function Home() {
               />
 
               {/* Quick tip badge */}
-              <div className="bg-white dark:bg-zinc-950 rounded-2xl p-4 border border-zinc-200 dark:border-zinc-800 flex items-center gap-3">
+              <div className="bg-white dark:bg-zinc-950 rounded-2xl p-4 border border-zinc-200 dark:border-zinc-800 flex items-center gap-3 shadow-xs">
                 <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300">
                   <Zap className="w-4 h-4" />
                 </div>
@@ -376,8 +418,8 @@ export default function Home() {
                 onCopyAll={handleCopyAll}
                 onCopyRecipient={handleCopyRecipient}
                 onLogApplication={handleLogApplication}
-                onUpdateBody={(nb) => setCustomBody(nb)}
-                onUpdateSubject={(ns) => setCustomSubject(ns)}
+                onUpdateBody={handleUpdateBody}
+                onUpdateSubject={handleUpdateSubject}
                 isLogSaved={isLogSavedCurrent}
                 onOpenProfile={() => setIsProfileOpen(true)}
                 addToast={addToast}
@@ -420,7 +462,7 @@ export default function Home() {
         isOpen={isTemplatesOpen}
         onClose={() => setIsTemplatesOpen(false)}
         templates={templates}
-        onSaveTemplates={saveTemplates}
+        onSaveTemplates={(t) => saveTemplates(t, true)}
         onResetTemplates={() => {
           setTemplates(DEFAULT_TEMPLATES);
           localStorage.removeItem('quicksend_templates');

@@ -68,6 +68,26 @@ export default function EmailPreview({
   const [copiedBody, setCopiedBody] = useState(false);
   const [copiedAll, setCopiedAll] = useState(false);
 
+  // View Resume PDF in new tab
+  const handleViewResume = () => {
+    if (resumeFileDataUrl) {
+      const win = window.open();
+      if (win) {
+        win.document.title = resumeFileName || 'Resume PDF';
+        win.document.write(
+          `<iframe src="${resumeFileDataUrl}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100vh;" allowfullscreen></iframe>`
+        );
+      }
+    } else {
+      addToast({
+        title: 'No Resume Uploaded',
+        description: 'Please click "Change" to upload your PDF resume in Profile settings.',
+        type: 'info',
+      });
+      onOpenProfile();
+    }
+  };
+
   // Strip markdown formatting for email clients (mailto / clipboard)
   const getPlainBody = (rawBody: string) => {
     return rawBody.replace(/\*\*(.*?)\*\*/g, '$1');
@@ -245,7 +265,7 @@ export default function EmailPreview({
         {recipientEmail && (
           <button
             onClick={onCopyRecipient}
-            className="text-[10px] text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white px-2 py-0.5 rounded bg-zinc-200 dark:bg-zinc-800 font-mono-code font-medium"
+            className="text-[10px] text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white px-2 py-0.5 rounded bg-zinc-200 dark:bg-zinc-800 font-mono-code font-medium cursor-pointer"
           >
             Copy
           </button>
@@ -258,7 +278,7 @@ export default function EmailPreview({
           <span className="text-zinc-500 dark:text-zinc-400 font-mono-code text-[11px] uppercase font-bold">Subject:</span>
           <button
             onClick={handleCopySubject}
-            className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 font-semibold"
+            className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 font-semibold cursor-pointer"
           >
             {copiedSubject ? <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-3 h-3" />}
             <span>{copiedSubject ? 'Copied' : 'Copy Subject'}</span>
@@ -285,7 +305,7 @@ export default function EmailPreview({
           <span className="text-zinc-500 dark:text-zinc-400 font-mono-code text-[11px] uppercase font-bold">Body:</span>
           <button
             onClick={handleCopyBody}
-            className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 font-semibold"
+            className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 font-semibold cursor-pointer"
           >
             {copiedBody ? <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-3 h-3" />}
             <span>{copiedBody ? 'Copied' : 'Copy Body'}</span>
@@ -316,100 +336,111 @@ export default function EmailPreview({
           </div>
         </div>
 
-        <button
-          onClick={onOpenProfile}
-          className="text-[10px] text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white px-2.5 py-1 rounded-lg bg-zinc-200 dark:bg-zinc-800 font-semibold"
-        >
-          Change
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={handleViewResume}
+            className="text-[10px] text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+            title="View uploaded PDF resume"
+          >
+            <Eye className="w-3 h-3" />
+            <span>View</span>
+          </button>
+
+          <button
+            onClick={onOpenProfile}
+            className="text-[10px] text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white px-2.5 py-1 rounded-lg bg-zinc-200 dark:bg-zinc-800 font-semibold cursor-pointer transition-colors"
+          >
+            Change
+          </button>
+        </div>
       </div>
 
-      {/* Primary Action Toolbar */}
-      <div className="pt-2 border-t border-zinc-200 dark:border-zinc-800 space-y-2.5">
-        {/* Direct Send Nodemailer Button */}
+      {/* Modern Redesigned Action Toolbar */}
+      <div className="pt-3 border-t border-zinc-200 dark:border-zinc-800 space-y-2.5">
+        {/* Sleek Primary Direct Send Button */}
         <button
           onClick={handleDirectSend}
           disabled={isSendingDirect}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-bold text-xs shadow-md transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+          className="w-full flex items-center justify-center gap-2.5 py-3 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.99] text-white font-bold text-xs tracking-wide shadow-lg shadow-indigo-500/20 transition-all disabled:opacity-50 cursor-pointer group"
         >
           {isSendingDirect ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin text-white" />
-              <span>Sending Direct Email via Nodemailer...</span>
+              <span>Sending Email Direct...</span>
             </>
           ) : (
             <>
-              <Zap className="w-4 h-4 text-cyan-300 fill-cyan-300" />
-              <span>Send Email Directly (1-Click Nodemailer)</span>
+              <Zap className="w-4 h-4 text-amber-300 fill-amber-300 group-hover:scale-110 transition-transform" />
+              <span>1-Click Direct Send</span>
             </>
           )}
         </button>
 
-        {/* Secondary Launchers */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {/* Clean Grid of Secondary Actions */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-semibold">
+          {/* Launch Mail App */}
           <a
             href={mailtoUrl}
             onClick={() => {
-              if (recipientEmail && companyName) {
-                onLogApplication();
-              }
+              if (recipientEmail && companyName) onLogApplication();
             }}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-200 font-semibold text-xs transition-all text-center"
+            className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-200 text-[11px] transition-all text-center"
           >
-            <Send className="w-3.5 h-3.5" />
-            <span>Launch Mail App</span>
-            <ExternalLink className="w-3 h-3 opacity-70" />
+            <Send className="w-3 h-3 text-indigo-500" />
+            <span>Mail App</span>
           </a>
 
+          {/* Gmail Web */}
+          <a
+            href={gmailUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => {
+              if (recipientEmail && companyName) onLogApplication();
+            }}
+            className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-200 text-[11px] transition-all text-center"
+          >
+            <Globe className="w-3 h-3 text-rose-500" />
+            <span>Gmail Web</span>
+          </a>
+
+          {/* Outlook Web */}
+          <a
+            href={outlookUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => {
+              if (recipientEmail && companyName) onLogApplication();
+            }}
+            className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-200 text-[11px] transition-all text-center"
+          >
+            <Globe className="w-3 h-3 text-sky-500" />
+            <span>Outlook Web</span>
+          </a>
+
+          {/* Copy Entire Email */}
           <button
             onClick={handleCopyAll}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-200 font-semibold text-xs transition-all"
+            className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-200 text-[11px] transition-all cursor-pointer"
           >
-            {copiedAll ? <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />}
-            <span>{copiedAll ? 'Entire Email Copied!' : 'Copy Entire Email'}</span>
+            {copiedAll ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 text-zinc-400" />}
+            <span>{copiedAll ? 'Copied!' : 'Copy All'}</span>
           </button>
         </div>
 
-        {/* Webmail links & Save button */}
-        <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11px] text-zinc-500 font-medium">Webmail:</span>
-            <a
-              href={gmailUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => {
-                if (recipientEmail && companyName) onLogApplication();
-              }}
-              className="px-2.5 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800 text-[11px] font-semibold"
-            >
-              Gmail Web
-            </a>
-
-            <a
-              href={outlookUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => {
-                if (recipientEmail && companyName) onLogApplication();
-              }}
-              className="px-2.5 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800 text-[11px] font-semibold"
-            >
-              Outlook Web
-            </a>
-          </div>
-
+        {/* Log Application Footer Button */}
+        <div className="flex items-center justify-end pt-1">
           <button
             onClick={onLogApplication}
             disabled={isLogSaved}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all border ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-all border ${
               isLogSaved
                 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
                 : 'bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300'
             }`}
           >
-            {isLogSaved ? <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" /> : <BookmarkPlus className="w-3 h-3 text-zinc-500 dark:text-zinc-400" />}
-            <span>{isLogSaved ? 'Saved' : 'Log Application'}</span>
+            {isLogSaved ? <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> : <BookmarkPlus className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />}
+            <span>{isLogSaved ? 'Application Logged' : 'Log Application'}</span>
           </button>
         </div>
       </div>

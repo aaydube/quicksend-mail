@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Mail, User, FileCode2, History, Layers, Sun, Moon, LogIn, LogOut } from 'lucide-react';
 import { useSession, signOut } from 'next-auth/react';
+import { UserProfile } from '../lib/types';
 
 interface HeaderProps {
   totalSent: number;
@@ -14,6 +15,7 @@ interface HeaderProps {
   onOpenAuth: () => void;
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
+  profile?: UserProfile;
 }
 
 export default function Header({
@@ -26,11 +28,39 @@ export default function Header({
   onOpenAuth,
   theme,
   onToggleTheme,
+  profile,
 }: HeaderProps) {
   const { data: session, status } = useSession();
+  const [scrolled, setScrolled] = useState(false);
+
+  // Track scroll position for header elevation
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const displayName = profile?.fullName
+    ? profile.fullName.split(' ')[0]
+    : session?.user?.name
+    ? session.user.name.split(' ')[0]
+    : session?.user?.email
+    ? session.user.email.split('@')[0]
+    : 'Profile';
+
+  const userInitial = displayName[0].toUpperCase();
 
   return (
-    <header className="sticky top-0 z-40 bg-white/90 dark:bg-zinc-950/90 border-b border-zinc-200 dark:border-zinc-800/80 px-4 lg:px-8 py-3 backdrop-blur-xl transition-all">
+    <header
+      className={`fixed top-0 left-0 right-0 z-50 w-full transition-all duration-300 backdrop-blur-xl border-b ${
+        scrolled
+          ? 'bg-white/90 dark:bg-zinc-950/90 border-zinc-300/80 dark:border-zinc-800/90 shadow-md shadow-zinc-900/5'
+          : 'bg-white/95 dark:bg-zinc-950/95 border-zinc-200 dark:border-zinc-800/80 shadow-none'
+      } px-4 lg:px-8 py-3`}
+    >
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
         {/* Brand identity */}
         <div className="flex items-center gap-2.5">
@@ -50,7 +80,7 @@ export default function Header({
           <div className="flex p-0.5 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs font-medium">
             <button
               onClick={() => setActiveTab('composer')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                 activeTab === 'composer'
                   ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white font-semibold shadow-xs'
                   : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
@@ -61,7 +91,7 @@ export default function Header({
             </button>
             <button
               onClick={() => setActiveTab('history')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all relative ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all relative cursor-pointer ${
                 activeTab === 'history'
                   ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white font-semibold shadow-xs'
                   : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
@@ -82,7 +112,7 @@ export default function Header({
           {/* Quick action buttons */}
           <button
             onClick={onOpenBatch}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-medium transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-medium transition-all cursor-pointer"
             title="Batch queue for multiple companies"
           >
             <Layers className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
@@ -91,46 +121,34 @@ export default function Header({
 
           <button
             onClick={onOpenTemplates}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-medium transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-medium transition-all cursor-pointer"
             title="Customize role templates"
           >
             <FileCode2 className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
             <span>Templates</span>
           </button>
 
+          {/* Clean Modern Professional User Profile Avatar Badge */}
           <button
             onClick={onOpenProfile}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-medium transition-all"
-            title="Sender profile settings"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-200 text-xs font-semibold transition-all cursor-pointer group"
+            title="Open Profile & Settings"
           >
-            <User className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
-            <span>Profile</span>
+            <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-indigo-600 to-indigo-500 text-white font-bold text-[10px] flex items-center justify-center shadow-xs ring-1 ring-indigo-500/30 group-hover:scale-105 transition-transform">
+              {userInitial}
+            </div>
+            <span className="max-w-[100px] truncate">{displayName}</span>
           </button>
 
-          {/* NextAuth Authentication Badge / Button */}
-          {status === 'authenticated' && session?.user ? (
-            <div className="flex items-center gap-2 pl-1">
-              <div className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/30 text-xs">
-                {session.user.image ? (
-                  <img src={session.user.image} alt={session.user.name || 'User'} className="w-4 h-4 rounded-full" />
-                ) : (
-                  <div className="w-4 h-4 rounded-full bg-indigo-600 text-white text-[9px] font-bold flex items-center justify-center">
-                    {(session.user.name || session.user.email || 'A')[0]}
-                  </div>
-                )}
-                <span className="font-semibold text-zinc-800 dark:text-zinc-200 max-w-[100px] truncate">
-                  {session.user.name?.split(' ')[0] || session.user.email?.split('@')[0]}
-                </span>
-              </div>
-
-              <button
-                onClick={() => signOut()}
-                className="p-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-rose-500/10 hover:text-rose-500 border border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 transition-all"
-                title="Sign Out"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-              </button>
-            </div>
+          {/* Authentication Action Button */}
+          {status === 'authenticated' ? (
+            <button
+              onClick={() => signOut()}
+              className="p-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-rose-500/10 hover:text-rose-500 border border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 transition-all cursor-pointer"
+              title="Sign Out"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
           ) : (
             <button
               onClick={onOpenAuth}
@@ -145,7 +163,7 @@ export default function Header({
           {/* Light / Dark Mode Toggle */}
           <button
             onClick={onToggleTheme}
-            className="p-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 transition-all flex items-center justify-center"
+            className="p-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 transition-all flex items-center justify-center cursor-pointer"
             title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
           >
             {theme === 'dark' ? (

@@ -2,7 +2,7 @@
 
 import React, { useRef, useEffect } from 'react';
 import { UserProfile } from '../lib/types';
-import { User, Mail, Phone, Globe, FileText, Check, X, Sparkles, Upload, Paperclip, Trash2, Key, HelpCircle, Lock, AlertTriangle } from 'lucide-react';
+import { User, Mail, Phone, Globe, FileText, Check, X, Sparkles, Upload, Paperclip, Trash2, Key, HelpCircle, Lock, AlertTriangle, Eye } from 'lucide-react';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -79,6 +79,18 @@ export default function ProfileModal({
       resumeFileDataUrl: undefined,
     });
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleViewResume = () => {
+    if (formData.resumeFileDataUrl) {
+      const win = window.open();
+      if (win) {
+        win.document.title = formData.resumeFileName || 'Resume PDF';
+        win.document.write(
+          `<iframe src="${formData.resumeFileDataUrl}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100vh;" allowfullscreen></iframe>`
+        );
+      }
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -268,14 +280,26 @@ export default function ProfileModal({
                       </div>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleRemoveResume}
-                    className="p-1.5 text-zinc-400 hover:text-rose-500 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                    title="Remove resume"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    {formData.resumeFileDataUrl && (
+                      <button
+                        type="button"
+                        onClick={handleViewResume}
+                        className="px-2 py-1 text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900 border border-indigo-200 dark:border-indigo-800 rounded-lg flex items-center gap-1"
+                        title="View Resume PDF"
+                      >
+                        <Eye className="w-3 h-3" /> View
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleRemoveResume}
+                      className="p-1.5 text-zinc-400 hover:text-rose-500 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                      title="Remove resume"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div

@@ -29,6 +29,7 @@ export interface UserProfile {
   resumeUrl: string;
   resumeFileName?: string;
   resumeFileDataUrl?: string;
+  avatarUrl?: string;
   smtpUser?: string;
   smtpPass?: string;
   smtpHost?: string;
