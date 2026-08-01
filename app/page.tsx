@@ -85,14 +85,25 @@ export default function Home() {
     }
   }, []);
 
-  // Synchronize session user into profile
+  // Fetch custom templates from PostgreSQL when user logs in
   useEffect(() => {
-    if (session?.user) {
+    if (session?.user?.email) {
       setProfile((prev) => ({
         ...prev,
         fullName: session.user?.name || prev.fullName,
         email: session.user?.email || prev.email,
       }));
+
+      // Fetch user custom templates from DB
+      fetch('/api/templates')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.templates && data.templates.length > 0) {
+            setTemplates(data.templates);
+            localStorage.setItem('quicksend_templates', JSON.stringify(data.templates));
+          }
+        })
+        .catch((err) => console.error('Error fetching user templates:', err));
     }
   }, [session]);
 
@@ -109,11 +120,24 @@ export default function Home() {
     });
   };
 
-  // Save changes to localStorage
-  const saveTemplates = (newTemplates: EmailTemplate[]) => {
+  // Save changes to localStorage & PostgreSQL database
+  const saveTemplates = async (newTemplates: EmailTemplate[]) => {
     setTemplates(newTemplates);
     localStorage.setItem('quicksend_templates', JSON.stringify(newTemplates));
-    addToast({ title: 'Templates Saved', description: 'Updated template definitions saved.', type: 'success' });
+    addToast({ title: 'Templates Saved', description: 'Saved to your profile & database.', type: 'success' });
+
+    // Sync to PostgreSQL
+    if (session?.user?.email) {
+      try {
+        await fetch('/api/templates', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ templates: newTemplates }),
+        });
+      } catch (err) {
+        console.error('Error saving templates to DB:', err);
+      }
+    }
   };
 
   const saveProfile = (newProfile: UserProfile) => {

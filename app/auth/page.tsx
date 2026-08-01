@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Mail, User, Lock, ArrowRight, CheckCircle2, KeyRound, RefreshCw } from 'lucide-react';
+import { ShieldCheck, Mail, User, Lock, ArrowRight, CheckCircle2, KeyRound, Sparkles, RefreshCw, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function AuthPage() {
@@ -12,7 +12,7 @@ export default function AuthPage() {
 
   // Mode: 'signin' or 'signup'
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
-  // Method: Default to 'password' as requested by the user
+  // Method: Default to 'password'
   const [method, setMethod] = useState<'otp' | 'password'>('password');
 
   // Form inputs (Empty by default)
@@ -88,11 +88,12 @@ export default function AuthPage() {
         email: email.trim(),
         name: name.trim() || email.split('@')[0],
         otp: enteredCode,
+        isSignUp: authMode === 'signup' ? 'true' : 'false',
         redirect: false,
       });
 
       if (result?.error) {
-        setErrorMsg('Failed to verify credentials.');
+        setErrorMsg(result.error || 'Failed to verify OTP credentials.');
       } else {
         setSuccessMsg('Verification successful! Redirecting...');
         setTimeout(() => router.push('/'), 600);
@@ -104,33 +105,39 @@ export default function AuthPage() {
     }
   };
 
-  // Manual Password Sign In / Sign Up
+  // Manual Password Sign In / Sign Up with PostgreSQL Check
   const handlePasswordAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password) {
-      setErrorMsg('Email and password are required.');
+      setErrorMsg('Email address and password are required.');
       return;
     }
 
     setIsLoading(true);
     setErrorMsg(null);
+    setSuccessMsg(null);
 
     try {
       const result = await signIn('credentials', {
         email: email.trim(),
         name: name.trim() || email.split('@')[0],
         password: password,
+        isSignUp: authMode === 'signup' ? 'true' : 'false',
         redirect: false,
       });
 
       if (result?.error) {
-        setErrorMsg('Invalid email or password.');
+        if (result.error.includes('Read more at')) {
+          setErrorMsg('Invalid email or password. Please check your credentials or click Sign Up.');
+        } else {
+          setErrorMsg(result.error);
+        }
       } else {
-        setSuccessMsg('Signed in successfully!');
+        setSuccessMsg(authMode === 'signup' ? 'Account created successfully!' : 'Signed in successfully!');
         setTimeout(() => router.push('/'), 600);
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'Sign in failed.');
+      setErrorMsg(err.message || 'Authentication failed.');
     } finally {
       setIsLoading(false);
     }
@@ -245,14 +252,16 @@ export default function AuthPage() {
 
         {/* Error or Success Banners */}
         {errorMsg && (
-          <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-xs text-rose-700 dark:text-rose-300 font-medium">
-            {errorMsg}
+          <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-xs text-rose-700 dark:text-rose-300 font-medium flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+            <span>{errorMsg}</span>
           </div>
         )}
 
         {successMsg && (
-          <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 text-xs text-emerald-700 dark:text-emerald-300 font-medium">
-            {successMsg}
+          <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 text-xs text-emerald-700 dark:text-emerald-300 font-medium flex items-start gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+            <span>{successMsg}</span>
           </div>
         )}
 
