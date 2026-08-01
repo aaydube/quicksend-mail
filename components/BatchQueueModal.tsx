@@ -330,27 +330,63 @@ Stripe, recruiting@stripe.com, Software Developer`}
                         <div className="font-semibold text-zinc-900 dark:text-zinc-100 truncate">
                           {item.companyName}
                         </div>
-                        <div className="flex items-center gap-1.5 mt-0.5">
+                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                           <span className="text-[11px] font-mono-code text-zinc-500 truncate">
                             {item.recipientEmail}
                           </span>
                           <span className="text-zinc-300 dark:text-zinc-700 text-xs">•</span>
-                          <select
-                            value={itemRole}
-                            onChange={(e) => {
-                              const newRole = e.target.value;
-                              setQueue((prev) =>
-                                prev.map((q, i) => (i === idx ? { ...q, role: newRole } : q))
-                              );
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                            className="bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-[10px] font-semibold rounded px-1.5 py-0.5 border border-zinc-200 dark:border-zinc-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer shrink-0"
-                          >
-                            <option value="Software Developer">Software Dev</option>
-                            <option value="AI Engineer">AI Engineer</option>
-                            <option value="Full Stack Developer">Full Stack</option>
-                            <option value="Custom">{customRole ? `Custom (${customRole})` : 'Custom'}</option>
-                          </select>
+                          {(() => {
+                            const isKnown = ['Software Developer', 'AI Engineer', 'Full Stack Developer'].includes(item.role || '');
+                            const isCustom = item.role === 'Custom' || (!!item.role && !isKnown);
+                            const selectVal = isKnown ? item.role : 'Custom';
+
+                            return (
+                              <div className="flex items-center gap-1 shrink-0">
+                                <select
+                                  value={selectVal}
+                                  onChange={(e) => {
+                                    const newRole = e.target.value;
+                                    if (newRole === 'Custom') {
+                                      const initCustom = customRole?.trim() || 'Custom Role';
+                                      setQueue((prev) =>
+                                        prev.map((q, i) => (i === idx ? { ...q, role: initCustom } : q))
+                                      );
+                                    } else {
+                                      setQueue((prev) =>
+                                        prev.map((q, i) => (i === idx ? { ...q, role: newRole } : q))
+                                      );
+                                    }
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-[10px] font-semibold rounded px-1.5 py-0.5 border border-zinc-200 dark:border-zinc-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer shrink-0"
+                                >
+                                  <option value="Software Developer">Software Dev</option>
+                                  <option value="AI Engineer">AI Engineer</option>
+                                  <option value="Full Stack Developer">Full Stack</option>
+                                  <option value="Custom">Custom</option>
+                                </select>
+
+                                {isCustom && (
+                                  <input
+                                    type="text"
+                                    value={item.role === 'Custom' ? (customRole || '') : (item.role || '')}
+                                    onChange={(e) => {
+                                      const customVal = e.target.value;
+                                      setQueue((prev) =>
+                                        prev.map((q, i) => (i === idx ? { ...q, role: customVal } : q))
+                                      );
+                                      if (onSelectCustomRole) {
+                                        onSelectCustomRole(customVal);
+                                      }
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    placeholder="Custom Role..."
+                                    className="bg-white dark:bg-zinc-900 text-indigo-600 dark:text-indigo-400 font-semibold text-[10px] rounded px-2 py-0.5 border border-indigo-300 dark:border-indigo-700/80 w-28 focus:outline-none focus:ring-1 focus:ring-indigo-500 shrink-0"
+                                  />
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
