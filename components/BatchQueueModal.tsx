@@ -1,0 +1,199 @@
+'use client';
+
+import React, { useState } from 'react';
+import { Layers, X, ArrowRight, Play, CheckCircle, Trash2 } from 'lucide-react';
+import { BatchCompany } from '../lib/types';
+
+interface BatchQueueModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSelectBatchItem: (company: string, email: string) => void;
+}
+
+export default function BatchQueueModal({
+  isOpen,
+  onClose,
+  onSelectBatchItem,
+}: BatchQueueModalProps) {
+  const [rawInput, setRawInput] = useState('');
+  const [queue, setQueue] = useState<BatchCompany[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  if (!isOpen) return null;
+
+  const handleParse = () => {
+    const lines = rawInput.split('\n').filter((l) => l.trim().length > 0);
+    const parsedItems: BatchCompany[] = [];
+
+    lines.forEach((line, idx) => {
+      const parts = line.split(/[,:\t]+/).map((p) => p.trim());
+      let company = parts[0] || '';
+      let email = parts[1] || '';
+
+      if (company.includes('@') && !email) {
+        email = company;
+        company = email.split('@')[1].split('.')[0];
+      }
+
+      if (company || email) {
+        parsedItems.push({
+          id: `batch-${Date.now()}-${idx}`,
+          companyName: company || 'Company',
+          recipientEmail: email || '',
+          status: 'pending',
+        });
+      }
+    });
+
+    setQueue(parsedItems);
+    setCurrentIndex(0);
+  };
+
+  const handleLoadItem = (index: number) => {
+    if (queue[index]) {
+      onSelectBatchItem(queue[index].companyName, queue[index].recipientEmail);
+      setCurrentIndex(index);
+      setQueue((prev) =>
+        prev.map((item, i) => (i === index ? { ...item, status: 'completed' } : item))
+      );
+    }
+  };
+
+  const handleLoadNext = () => {
+    const nextIdx = currentIndex + 1 < queue.length ? currentIndex + 1 : 0;
+    handleLoadItem(nextIdx);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/70 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-zinc-950 w-full max-w-2xl rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6 space-y-5 shadow-2xl overflow-y-auto max-h-[90vh]">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-indigo-600 text-white">
+              <Layers className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">Batch Queue Mode</h3>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Paste a list of companies & emails to rapid-apply in sequence
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 text-zinc-400 hover:text-zinc-900 dark:hover:text-white rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Input box */}
+        {queue.length === 0 ? (
+          <div className="space-y-4 text-xs">
+            <div className="space-y-1.5">
+              <label className="block text-zinc-800 dark:text-zinc-300 font-semibold">
+                Paste List of Companies & Emails (One per line):
+              </label>
+              <textarea
+                value={rawInput}
+                onChange={(e) => setRawInput(e.target.value)}
+                rows={8}
+                placeholder={`Example format:
+Google, hr@google.com
+OpenAI, jobs@openai.com
+Stripe, recruiting@stripe.com`}
+                className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 p-3.5 rounded-xl text-xs font-mono-code leading-relaxed resize-none focus:outline-none focus:border-indigo-500"
+              />
+              <p className="text-[11px] text-zinc-500 font-medium">
+                Supported delimiters: comma (,), colon (:), tab, or newlines.
+              </p>
+            </div>
+
+            <button
+              onClick={handleParse}
+              disabled={!rawInput.trim()}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-xs disabled:opacity-50"
+            >
+              <Play className="w-4 h-4 fill-white" />
+              <span>Create Queue</span>
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4 text-xs">
+            {/* Active Queue Bar */}
+            <div className="flex items-center justify-between bg-zinc-50 dark:bg-zinc-900 rounded-xl p-3 border border-zinc-200 dark:border-zinc-800">
+              <span className="text-zinc-700 dark:text-zinc-300 font-medium">
+                Queue Progress: <span className="text-indigo-600 dark:text-indigo-400 font-bold">{currentIndex + 1}</span> of{' '}
+                <span className="text-zinc-900 dark:text-white font-bold">{queue.length}</span>
+              </span>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleLoadNext}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-xs"
+                >
+                  <span>Load Next</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+
+                <button
+                  onClick={() => setQueue([])}
+                  className="p-1.5 text-zinc-400 hover:text-rose-500 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  title="Clear Queue"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* List of queue items */}
+            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+              {queue.map((item, idx) => {
+                const isActive = idx === currentIndex;
+                const isCompleted = item.status === 'completed';
+
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => handleLoadItem(idx)}
+                    className={`flex items-center justify-between p-3 rounded-xl cursor-pointer border transition-all ${
+                      isActive
+                        ? 'bg-indigo-50 dark:bg-indigo-500/20 border-indigo-500 text-zinc-900 dark:text-white font-semibold shadow-xs'
+                        : isCompleted
+                        ? 'bg-zinc-50 dark:bg-zinc-900/40 border-zinc-200 dark:border-zinc-800 text-zinc-400'
+                        : 'bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="w-5 h-5 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-[10px] font-mono-code text-zinc-600 dark:text-zinc-400">
+                        {idx + 1}
+                      </span>
+                      <div>
+                        <div className="font-semibold text-zinc-900 dark:text-zinc-100">{item.companyName}</div>
+                        <div className="text-[11px] font-mono-code text-zinc-500">{item.recipientEmail}</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {isCompleted && (
+                        <span className="flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                          <CheckCircle className="w-3.5 h-3.5" /> Loaded
+                        </span>
+                      )}
+                      {isActive && (
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-100 dark:bg-indigo-500/30 text-indigo-700 dark:text-indigo-200 font-bold uppercase tracking-wider">
+                          Current
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
