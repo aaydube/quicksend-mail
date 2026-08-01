@@ -209,11 +209,14 @@ export default function Home() {
     templates.find((t) => t.role === role) || templates.find((t) => t.role === 'Software Developer') || templates[0];
 
   // Helper to compile placeholders into final text (supports {company}, [Company Name], {greeting}, etc.)
-  const compileTemplate = (rawText: string): string => {
+  const compileTemplate = (rawText: string, overrideCompany?: string, overrideEmail?: string): string => {
     if (!rawText) return '';
+    const targetCompany = overrideCompany !== undefined ? overrideCompany : companyName;
+    const targetEmail = overrideEmail !== undefined ? overrideEmail : recipientEmail;
+
     let compiled = rawText
       .replace(/{greeting}|Dear Ma'am\/Sir/g, activeGreeting)
-      .replace(/{company}|\[Company Name\]|\[company\]/gi, companyName.trim() || '[Company Name]')
+      .replace(/{company}|\[Company Name\]|\[company\]/gi, targetCompany.trim() || '[Company Name]')
       .replace(/{role}|\[Role\]|\[role\]/gi, activeRoleName)
       .replace(/{manager}|\[Hiring Manager\]|\[manager\]/gi, managerName.trim() || 'Hiring Manager')
       .replace(/{my_name}/g, profile.fullName || 'Your Name')
@@ -222,7 +225,7 @@ export default function Home() {
       .replace(/{github}/g, profile.githubUrl || '')
       .replace(/{linkedin}/g, profile.linkedinUrl || '')
       .replace(/{phone}/g, profile.phone || '')
-      .replace(/{recipient_email}/g, recipientEmail || '');
+      .replace(/{recipient_email}/g, targetEmail || '');
 
     // If in Custom role mode and template still contains legacy literal titles, replace them with activeRoleName
     if (role === 'Custom' && customRole.trim()) {
@@ -346,6 +349,96 @@ export default function Home() {
     }
     setActiveTab('composer');
     addToast({ title: `Loaded ${log.companyName}`, description: 'Composer updated with past log.', type: 'info' });
+  };
+
+  // Select batch item and send direct email simultaneously
+  const handleSelectAndSendBatchItem = async (
+    company: string,
+    email: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    if (!email.trim()) {
+      addToast({ title: 'Recipient Email Required', description: 'No email found for item.', type: 'warning' });
+      return { success: false, error: 'Recipient email required' };
+    }
+
+    setCompanyName(company);
+    setRecipientEmail(email);
+
+    if (!profile.smtpPass?.trim()) {
+      addToast({
+        title: 'Gmail App Password Missing!',
+        description: 'Opening Profile Settings... Please enter your 16-character Gmail App Password.',
+        type: 'warning',
+      });
+      setIsProfileOpen(true);
+      return { success: false, error: 'SMTP App Password missing' };
+    }
+
+    const compiledSubj = compileTemplate(rawSubject, company, email);
+    const compiledBdy = compileTemplate(rawBody, company, email);
+    const plainBdy = compiledBdy.replace(/\*\*(.*?)\*\*/g, '$1');
+
+    try {
+      const res = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recipientEmail: email.trim(),
+          subject: compiledSubj,
+          body: plainBdy,
+          senderEmail: profile.email || 'your.email@example.com',
+          smtpUser: profile.smtpUser || profile.email,
+          smtpPass: profile.smtpPass,
+          resumeFileName: profile.resumeFileName || 'Resume.pdf',
+          resumeFileDataUrl: profile.resumeFileDataUrl,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        addToast({
+          title: `⚡ Sent to ${company}!`,
+          description: `Directly dispatched email to ${email.trim()}`,
+          type: 'success',
+        });
+
+        const newLog: ApplicationLog = {
+          id: `log-${Date.now()}-${Math.random()}`,
+          timestamp: Date.now(),
+          companyName: company.trim(),
+          recipientEmail: email.trim(),
+          role: activeRoleName,
+          managerName: managerName.trim(),
+          subject: compiledSubj,
+          body: plainBdy,
+          status: 'Applied',
+        };
+
+        setApplicationLogs((prev) => {
+          const updated = [newLog, ...prev];
+          localStorage.setItem('quicksend_logs', JSON.stringify(updated));
+          return updated;
+        });
+
+        setIsLogSavedCurrent(true);
+        return { success: true };
+      } else {
+        addToast({
+          title: `Dispatch Error (${company})`,
+          description: data.error || 'Failed to send via Nodemailer SMTP.',
+          type: 'warning',
+        });
+        return { success: false, error: data.error };
+      }
+    } catch (err: any) {
+      addToast({
+        title: 'Network Error',
+        description: err.message || 'Could not connect to send API.',
+        type: 'warning',
+      });
+      return { success: false, error: err.message };
+    }
   };
 
   return (
@@ -490,6 +583,7 @@ export default function Home() {
           setRecipientEmail(email);
           addToast({ title: `Loaded ${company}`, description: email, type: 'success' });
         }}
+        onSelectAndSendBatchItem={handleSelectAndSendBatchItem}
       />
 
       {/* Toast Container */}

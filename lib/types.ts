@@ -56,5 +56,5 @@ export interface BatchCompany {
   companyName: string;
   recipientEmail: string;
   managerName?: string;
-  status: 'pending' | 'completed';
+  status: 'pending' | 'completed' | 'sending' | 'sent' | 'failed';
 }
