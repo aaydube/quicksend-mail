@@ -176,12 +176,12 @@ export default function Home() {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  // Reset custom overrides only when changing role
+  // Reset custom overrides only when changing role enum
   useEffect(() => {
     setCustomSubject(null);
     setCustomBody(null);
     setIsLogSavedCurrent(false);
-  }, [role, customRole]);
+  }, [role]);
 
   // Block rendering until session is verified and user is authenticated
   if (status === 'loading' || status === 'unauthenticated') {
@@ -196,7 +196,7 @@ export default function Home() {
   }
 
   // Determine active template
-  const activeRoleName = role === 'Custom' ? (customRole || 'Custom Role') : role;
+  const activeRoleName = role === 'Custom' ? (customRole.trim() || 'Custom Role') : role;
 
   // Determine active greeting
   const activeGreeting = managerName.trim()
@@ -206,12 +206,12 @@ export default function Home() {
     : salutation;
 
   const currentTemplate =
-    templates.find((t) => t.role === (role === 'Custom' ? 'Software Developer' : role)) || templates[0];
+    templates.find((t) => t.role === role) || templates.find((t) => t.role === 'Software Developer') || templates[0];
 
   // Helper to compile placeholders into final text (supports {company}, [Company Name], {greeting}, etc.)
   const compileTemplate = (rawText: string): string => {
     if (!rawText) return '';
-    return rawText
+    let compiled = rawText
       .replace(/{greeting}|Dear Ma'am\/Sir/g, activeGreeting)
       .replace(/{company}|\[Company Name\]|\[company\]/gi, companyName.trim() || '[Company Name]')
       .replace(/{role}|\[Role\]|\[role\]/gi, activeRoleName)
@@ -223,6 +223,16 @@ export default function Home() {
       .replace(/{linkedin}/g, profile.linkedinUrl || '')
       .replace(/{phone}/g, profile.phone || '')
       .replace(/{recipient_email}/g, recipientEmail || '');
+
+    // If in Custom role mode and template still contains legacy literal titles, replace them with activeRoleName
+    if (role === 'Custom' && customRole.trim()) {
+      compiled = compiled
+        .replace(/Software Developer/g, activeRoleName)
+        .replace(/AI Engineer/g, activeRoleName)
+        .replace(/Full Stack Developer/g, activeRoleName);
+    }
+
+    return compiled;
   };
 
   // Compile raw template OR custom edited text through compileTemplate
@@ -256,7 +266,7 @@ export default function Home() {
   // Live Body update handler
   const handleUpdateBody = (newBody: string) => {
     setCustomBody(newBody);
-    const targetRole = role === 'Custom' ? 'Software Developer' : role;
+    const targetRole = role;
     const updatedTemplates = templates.map((t) =>
       t.role === targetRole ? { ...t, body: newBody } : t
     );
@@ -265,7 +275,7 @@ export default function Home() {
 
   const handleUpdateSubject = (newSubject: string) => {
     setCustomSubject(newSubject);
-    const targetRole = role === 'Custom' ? 'Software Developer' : role;
+    const targetRole = role;
     const updatedTemplates = templates.map((t) =>
       t.role === targetRole ? { ...t, subject: newSubject } : t
     );

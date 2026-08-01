@@ -19,10 +19,10 @@ export const DEFAULT_TEMPLATES: EmailTemplate[] = [
     role: 'Software Developer',
     name: 'Software Developer Application',
     isDefault: true,
-    subject: 'Applying for Software Developer | {my_name}',
+    subject: 'Applying for {role} | {my_name}',
     body: `{greeting},
 
-I'm writing to express my strong interest in the Software Developer position at {company}. I have hands-on experience designing, developing, and deploying scalable software solutions and full-stack applications.
+I'm writing to express my strong interest in the {role} position at {company}. I have hands-on experience designing, developing, and deploying scalable software solutions and full-stack applications.
 
 A summary of my core background & achievements:
 
@@ -42,10 +42,10 @@ Best regards,
     role: 'AI Engineer',
     name: 'AI Engineer Application',
     isDefault: true,
-    subject: 'Applying for AI Engineer | {my_name}',
+    subject: 'Applying for {role} | {my_name}',
     body: `{greeting},
 
-I'm writing to express my strong interest in the AI Engineer position at {company}. I specialize in building AI-powered applications, LLM workflows, RAG pipelines, and integrating intelligent features into full-stack products.
+I'm writing to express my strong interest in the {role} position at {company}. I specialize in building AI-powered applications, LLM workflows, RAG pipelines, and integrating intelligent features into full-stack products.
 
 A summary of my core background & achievements:
 
@@ -65,10 +65,10 @@ Best regards,
     role: 'Full Stack Developer',
     name: 'Full Stack Developer Application',
     isDefault: true,
-    subject: 'Applying for Full Stack Developer | {my_name}',
+    subject: 'Applying for {role} | {my_name}',
     body: `{greeting},
 
-I'm writing to express my strong interest in the Full Stack Developer position at {company}. I bring end-to-end expertise in engineering intuitive frontends, scalable backend services, and cloud integrations.
+I'm writing to express my strong interest in the {role} position at {company}. I bring end-to-end expertise in engineering intuitive frontends, scalable backend services, and cloud integrations.
 
 A summary of my core background & achievements:
 
@@ -77,6 +77,29 @@ A summary of my core background & achievements:
 - **Product Delivery**: Proven track record of shipping full-stack products from initial architecture design to production deployment.
 
 My resume is attached for your review. I would love the chance to connect and explore how I can contribute to the team at {company}.
+
+Best regards,
+{my_name}
+{phone} | {email}
+{linkedin} | {github}`
+  },
+  {
+    id: 'custom-role-default',
+    role: 'Custom',
+    name: 'Custom Role Application',
+    isDefault: true,
+    subject: 'Applying for {role} | {my_name}',
+    body: `{greeting},
+
+I'm writing to express my strong interest in the {role} position at {company}. I bring strong domain knowledge, technical expertise, and a track record of driving key engineering initiatives.
+
+A summary of my core background & achievements:
+
+- **Core Skills & Technical Expertise**: Hands-on experience executing end-to-end projects, adhering to software engineering best practices, and building reliable systems.
+- **Cross-Functional Collaboration**: Proven ability to collaborate with product managers, designers, and engineering teams to ship features on time.
+- **Continuous Learning & Growth**: Quick learner dedicated to adopting modern tools, frameworks, and workflows to solve complex challenges.
+
+My resume is attached for your review. I would appreciate the opportunity to discuss how my experience as a {role} aligns with your team's goals at {company}.
 
 Best regards,
 {my_name}

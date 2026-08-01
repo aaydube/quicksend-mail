@@ -81,53 +81,40 @@ export default function EmailComposer({
           <span className="text-[10px] text-zinc-500 font-normal">Select position</span>
         </label>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          {(['Software Developer', 'AI Engineer', 'Full Stack Developer'] as RoleType[]).map((r) => {
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {(['Software Developer', 'AI Engineer', 'Full Stack Developer', 'Custom'] as RoleType[]).map((r) => {
             const isSelected = role === r;
+            const label = r === 'Custom' ? (customRole.trim() ? `Custom (${customRole.trim()})` : 'Custom Role') : r;
             return (
               <button
                 key={r}
                 type="button"
                 onClick={() => setRole(r)}
-                className={`p-2.5 rounded-xl text-xs font-medium border transition-all text-center ${
+                className={`p-2.5 rounded-xl text-xs font-medium border transition-all text-center truncate ${
                   isSelected
                     ? 'bg-indigo-600 border-indigo-500 text-white font-semibold shadow-xs'
                     : 'bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-700 hover:text-zinc-900 dark:hover:text-white'
                 }`}
+                title={r === 'Custom' && customRole.trim() ? customRole : r}
               >
-                {r}
+                {label}
               </button>
             );
           })}
         </div>
 
         {/* Custom Role Input */}
-        {role === 'Custom' ? (
+        {role === 'Custom' && (
           <div className="flex gap-2 pt-1">
             <input
               type="text"
               value={customRole}
               onChange={(e) => setCustomRole(e.target.value)}
-              placeholder="Enter custom role title..."
+              placeholder="Enter custom role title (e.g. DevOps Engineer)..."
               className="flex-1 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 px-3 py-2 rounded-xl text-xs focus:outline-none focus:border-indigo-500"
               autoFocus
             />
-            <button
-              type="button"
-              onClick={() => setRole('Software Developer')}
-              className="px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800"
-            >
-              Cancel
-            </button>
           </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setRole('Custom')}
-            className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 font-medium pt-0.5"
-          >
-            <span>+ Custom role title</span>
-          </button>
         )}
       </div>
 

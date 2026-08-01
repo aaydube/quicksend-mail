@@ -21,7 +21,7 @@ export default function TemplateModal({
   onResetTemplates,
   selectedRole,
 }: TemplateModalProps) {
-  const [activeTab, setActiveTab] = useState<RoleType>(selectedRole === 'Custom' ? 'Software Developer' : selectedRole);
+  const [activeTab, setActiveTab] = useState<RoleType>(selectedRole);
   const [editingTemplates, setEditingTemplates] = useState<EmailTemplate[]>(templates);
   const [isSaved, setIsSaved] = useState(false);
 
@@ -95,8 +95,8 @@ export default function TemplateModal({
 
         {/* Role tabs */}
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 dark:border-zinc-800 pb-3">
-          <div className="flex p-1 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs">
-            {(['Software Developer', 'AI Engineer', 'Full Stack Developer'] as RoleType[]).map((r) => (
+          <div className="flex p-1 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs overflow-x-auto">
+            {(['Software Developer', 'AI Engineer', 'Full Stack Developer', 'Custom'] as RoleType[]).map((r) => (
               <button
                 key={r}
                 onClick={() => setActiveTab(r)}
