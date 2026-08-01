@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Layers, X, ArrowRight, Play, CheckCircle, Trash2, Zap, Loader2, AlertCircle, Briefcase } from 'lucide-react';
 import { BatchCompany, RoleType } from '../lib/types';
 
@@ -29,8 +29,10 @@ export default function BatchQueueModal({
   const [queue, setQueue] = useState<BatchCompany[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isBatchSending, setIsBatchSending] = useState(false);
+  // Local custom role state per item — avoids calling global setter while typing
+  const [itemCustomRoles, setItemCustomRoles] = useState<Record<string, string>>({});
 
-  // Lock body scroll when modal is open
+  // Lock body scroll when modal is open — do NOT return early before hooks
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -42,9 +44,7 @@ export default function BatchQueueModal({
     };
   }, [isOpen]);
 
-  if (!isOpen) return null;
-
-  const handleParse = () => {
+  const handleParse = useCallback(() => {
     const lines = rawInput.split('\n').filter((l) => l.trim().length > 0);
     const parsedItems: BatchCompany[] = [];
 
@@ -71,52 +71,56 @@ export default function BatchQueueModal({
     });
 
     setQueue(parsedItems);
+    setItemCustomRoles({});
     setCurrentIndex(0);
-  };
+  }, [rawInput, selectedRole]);
 
-  const handleLoadItem = (index: number) => {
+  const handleLoadItem = useCallback((index: number) => {
     if (queue[index]) {
-      const itemRole = queue[index].role || selectedRole || 'Software Developer';
-      onSelectBatchItem(queue[index].companyName, queue[index].recipientEmail, itemRole);
+      const item = queue[index];
+      const effectiveRole = itemCustomRoles[item.id] || item.role || selectedRole || 'Software Developer';
+      onSelectBatchItem(item.companyName, item.recipientEmail, effectiveRole);
       setCurrentIndex(index);
       setQueue((prev) =>
-        prev.map((item, i) => (i === index ? { ...item, status: 'completed' } : item))
+        prev.map((q, i) => (i === index ? { ...q, status: 'completed' } : q))
       );
     }
-  };
+  }, [queue, selectedRole, itemCustomRoles, onSelectBatchItem]);
 
-  const handleLoadNext = () => {
+  const handleLoadNext = useCallback(() => {
     const nextIdx = currentIndex + 1 < queue.length ? currentIndex + 1 : 0;
     handleLoadItem(nextIdx);
-  };
+  }, [currentIndex, queue.length, handleLoadItem]);
 
-  const handleSelectAndSendItem = async (index: number) => {
+  const handleSelectAndSendItem = useCallback(async (index: number) => {
     if (!queue[index] || !onSelectAndSendBatchItem) return;
     setCurrentIndex(index);
     setQueue((prev) => prev.map((item, i) => (i === index ? { ...item, status: 'sending' } : item)));
 
-    const itemRole = queue[index].role || selectedRole || 'Software Developer';
-    const res = await onSelectAndSendBatchItem(queue[index].companyName, queue[index].recipientEmail, itemRole);
+    const item = queue[index];
+    const itemRole = itemCustomRoles[item.id] || item.role || selectedRole || 'Software Developer';
+    const res = await onSelectAndSendBatchItem(item.companyName, item.recipientEmail, itemRole);
 
     if (res.success) {
-      setQueue((prev) => prev.map((item, i) => (i === index ? { ...item, status: 'sent' } : item)));
+      setQueue((prev) => prev.map((q, i) => (i === index ? { ...q, status: 'sent' } : q)));
     } else {
-      setQueue((prev) => prev.map((item, i) => (i === index ? { ...item, status: 'failed' } : item)));
+      setQueue((prev) => prev.map((q, i) => (i === index ? { ...q, status: 'failed' } : q)));
     }
-  };
+  }, [queue, selectedRole, itemCustomRoles, onSelectAndSendBatchItem]);
 
-  const handleSendCurrentAndNext = async () => {
+  const handleSendCurrentAndNext = useCallback(async () => {
     if (queue.length === 0) return;
     await handleSelectAndSendItem(currentIndex);
     const nextIdx = currentIndex + 1 < queue.length ? currentIndex + 1 : currentIndex;
     if (nextIdx !== currentIndex && queue[nextIdx]) {
       setCurrentIndex(nextIdx);
-      const nextRole = queue[nextIdx].role || selectedRole || 'Software Developer';
-      onSelectBatchItem(queue[nextIdx].companyName, queue[nextIdx].recipientEmail, nextRole);
+      const nextItem = queue[nextIdx];
+      const nextRole = itemCustomRoles[nextItem.id] || nextItem.role || selectedRole || 'Software Developer';
+      onSelectBatchItem(nextItem.companyName, nextItem.recipientEmail, nextRole);
     }
-  };
+  }, [queue, currentIndex, selectedRole, itemCustomRoles, handleSelectAndSendItem, onSelectBatchItem]);
 
-  const handleSendAllPending = async () => {
+  const handleSendAllPending = useCallback(async () => {
     if (!onSelectAndSendBatchItem || queue.length === 0) return;
     setIsBatchSending(true);
 
@@ -124,18 +128,22 @@ export default function BatchQueueModal({
       if (queue[i].status !== 'sent') {
         setCurrentIndex(i);
         setQueue((prev) => prev.map((item, idx) => (idx === i ? { ...item, status: 'sending' } : item)));
-        const itemRole = queue[i].role || selectedRole || 'Software Developer';
-        const res = await onSelectAndSendBatchItem(queue[i].companyName, queue[i].recipientEmail, itemRole);
+        const item = queue[i];
+        const itemRole = itemCustomRoles[item.id] || item.role || selectedRole || 'Software Developer';
+        const res = await onSelectAndSendBatchItem(item.companyName, item.recipientEmail, itemRole);
         if (res.success) {
-          setQueue((prev) => prev.map((item, idx) => (idx === i ? { ...item, status: 'sent' } : item)));
+          setQueue((prev) => prev.map((q, idx) => (idx === i ? { ...q, status: 'sent' } : q)));
         } else {
-          setQueue((prev) => prev.map((item, idx) => (idx === i ? { ...item, status: 'failed' } : item)));
+          setQueue((prev) => prev.map((q, idx) => (idx === i ? { ...q, status: 'failed' } : q)));
           break;
         }
       }
     }
     setIsBatchSending(false);
-  };
+  }, [queue, selectedRole, itemCustomRoles, onSelectAndSendBatchItem]);
+
+  // Don't return null early (causes state wipe) — hide via CSS instead
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/70 backdrop-blur-md animate-in fade-in duration-200">
@@ -194,7 +202,7 @@ export default function BatchQueueModal({
                 value={customRole || ''}
                 onChange={(e) => onSelectCustomRole(e.target.value)}
                 placeholder="Enter custom role..."
-                className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 text-xs rounded-lg px-2.5 py-1.5 w-36 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 text-xs rounded-lg px-2.5 py-1.5 w-40 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             )}
           </div>
@@ -241,7 +249,6 @@ Stripe, recruiting@stripe.com, Software Developer`}
               </span>
 
               <div className="flex items-center gap-2 flex-wrap">
-                {/* Option to load next item */}
                 <button
                   onClick={handleLoadNext}
                   disabled={isBatchSending}
@@ -252,7 +259,6 @@ Stripe, recruiting@stripe.com, Software Developer`}
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
 
-                {/* Option to Select & Send current item */}
                 {onSelectAndSendBatchItem && (
                   <button
                     onClick={handleSendCurrentAndNext}
@@ -265,7 +271,6 @@ Stripe, recruiting@stripe.com, Software Developer`}
                   </button>
                 )}
 
-                {/* Option to batch send all pending items */}
                 {onSelectAndSendBatchItem && (
                   <button
                     onClick={handleSendAllPending}
@@ -283,7 +288,7 @@ Stripe, recruiting@stripe.com, Software Developer`}
                 )}
 
                 <button
-                  onClick={() => setQueue([])}
+                  onClick={() => { setQueue([]); setItemCustomRoles({}); }}
                   disabled={isBatchSending}
                   className="p-1.5 text-zinc-400 hover:text-rose-500 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50 cursor-pointer"
                   title="Clear Queue"
@@ -297,11 +302,21 @@ Stripe, recruiting@stripe.com, Software Developer`}
             <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
               {queue.map((item, idx) => {
                 const isActive = idx === currentIndex;
-                const isCompleted = item.status === 'completed';
                 const isSent = item.status === 'sent';
                 const isSending = item.status === 'sending';
                 const isFailed = item.status === 'failed';
-                const itemRole = item.role || selectedRole || 'Software Developer';
+                const isCompleted = item.status === 'completed';
+
+                // Determine if item has a custom (non-preset) role
+                const PRESET_ROLES = ['Software Developer', 'AI Engineer', 'Full Stack Developer'];
+                const isPreset = PRESET_ROLES.includes(item.role || '');
+                const isCustomItem = !isPreset;
+                const selectDisplayVal = isPreset ? (item.role || 'Software Developer') : 'Custom';
+
+                // Local custom text — use itemCustomRoles for live edits
+                const customText = itemCustomRoles[item.id] !== undefined
+                  ? itemCustomRoles[item.id]
+                  : (isCustomItem ? (item.role || '') : '');
 
                 return (
                   <div
@@ -318,7 +333,7 @@ Stripe, recruiting@stripe.com, Software Developer`}
                         : 'bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800'
                     }`}
                   >
-                    {/* Item info / click to load */}
+                    {/* Item info */}
                     <div
                       className="flex items-center gap-3 cursor-pointer flex-1 min-w-0 mr-2"
                       onClick={() => handleLoadItem(idx)}
@@ -326,74 +341,80 @@ Stripe, recruiting@stripe.com, Software Developer`}
                       <span className="w-6 h-6 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-[10px] font-mono-code font-bold text-zinc-600 dark:text-zinc-400 shrink-0">
                         {idx + 1}
                       </span>
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="font-semibold text-zinc-900 dark:text-zinc-100 truncate">
                           {item.companyName}
                         </div>
-                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                          <span className="text-[11px] font-mono-code text-zinc-500 truncate">
-                            {item.recipientEmail}
-                          </span>
-                          <span className="text-zinc-300 dark:text-zinc-700 text-xs">•</span>
-                          {(() => {
-                            const isKnown = ['Software Developer', 'AI Engineer', 'Full Stack Developer'].includes(item.role || '');
-                            const isCustom = item.role === 'Custom' || (!!item.role && !isKnown);
-                            const selectVal = isKnown ? item.role : 'Custom';
+                        <div className="text-[11px] font-mono-code text-zinc-500 truncate">
+                          {item.recipientEmail}
+                        </div>
 
-                            return (
-                              <div className="flex items-center gap-1 shrink-0">
-                                <select
-                                  value={selectVal}
-                                  onChange={(e) => {
-                                    const newRole = e.target.value;
-                                    if (newRole === 'Custom') {
-                                      const initCustom = customRole?.trim() || 'Custom Role';
-                                      setQueue((prev) =>
-                                        prev.map((q, i) => (i === idx ? { ...q, role: initCustom } : q))
-                                      );
-                                    } else {
-                                      setQueue((prev) =>
-                                        prev.map((q, i) => (i === idx ? { ...q, role: newRole } : q))
-                                      );
-                                    }
-                                  }}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-[10px] font-semibold rounded px-1.5 py-0.5 border border-zinc-200 dark:border-zinc-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer shrink-0"
-                                >
-                                  <option value="Software Developer">Software Dev</option>
-                                  <option value="AI Engineer">AI Engineer</option>
-                                  <option value="Full Stack Developer">Full Stack</option>
-                                  <option value="Custom">Custom</option>
-                                </select>
+                        {/* Role selector row */}
+                        <div
+                          className="flex items-center gap-1.5 mt-1 flex-wrap"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <select
+                            value={selectDisplayVal}
+                            onChange={(e) => {
+                              const newRole = e.target.value;
+                              if (newRole === 'Custom') {
+                                // Switch to custom — populate with existing customRole from parent or blank
+                                const initVal = customRole?.trim() || '';
+                                setItemCustomRoles((prev) => ({ ...prev, [item.id]: initVal }));
+                                setQueue((prev) =>
+                                  prev.map((q, i) => (i === idx ? { ...q, role: initVal || 'Custom' } : q))
+                                );
+                              } else {
+                                // Switch to a preset role — clear any local custom
+                                setItemCustomRoles((prev) => {
+                                  const next = { ...prev };
+                                  delete next[item.id];
+                                  return next;
+                                });
+                                setQueue((prev) =>
+                                  prev.map((q, i) => (i === idx ? { ...q, role: newRole } : q))
+                                );
+                              }
+                            }}
+                            className="bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-[10px] font-semibold rounded px-1.5 py-0.5 border border-zinc-200 dark:border-zinc-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer shrink-0"
+                          >
+                            <option value="Software Developer">Software Dev</option>
+                            <option value="AI Engineer">AI Engineer</option>
+                            <option value="Full Stack Developer">Full Stack</option>
+                            <option value="Custom">Custom</option>
+                          </select>
 
-                                {isCustom && (
-                                  <input
-                                    type="text"
-                                    value={item.role === 'Custom' ? (customRole || '') : (item.role || '')}
-                                    onChange={(e) => {
-                                      const customVal = e.target.value;
-                                      setQueue((prev) =>
-                                        prev.map((q, i) => (i === idx ? { ...q, role: customVal } : q))
-                                      );
-                                      if (onSelectCustomRole) {
-                                        onSelectCustomRole(customVal);
-                                      }
-                                    }}
-                                    onClick={(e) => e.stopPropagation()}
-                                    placeholder="Custom Role..."
-                                    className="bg-white dark:bg-zinc-900 text-indigo-600 dark:text-indigo-400 font-semibold text-[10px] rounded px-2 py-0.5 border border-indigo-300 dark:border-indigo-700/80 w-28 focus:outline-none focus:ring-1 focus:ring-indigo-500 shrink-0"
-                                  />
-                                )}
-                              </div>
-                            );
-                          })()}
+                          {isCustomItem && (
+                            <input
+                              type="text"
+                              value={customText}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                // Only update local itemCustomRoles — do NOT call global setter
+                                setItemCustomRoles((prev) => ({ ...prev, [item.id]: val }));
+                                // Update the queue item role too so it gets dispatched correctly
+                                setQueue((prev) =>
+                                  prev.map((q, i) => (i === idx ? { ...q, role: val || 'Custom' } : q))
+                                );
+                              }}
+                              onBlur={(e) => {
+                                // On blur commit — optionally sync to global if it's the global custom role
+                                const val = e.target.value;
+                                if (selectedRole === 'Custom' && onSelectCustomRole && val) {
+                                  // Don't auto-sync here to avoid disrupting other items
+                                }
+                              }}
+                              placeholder="e.g. DevOps Engineer..."
+                              className="bg-white dark:bg-zinc-900 text-indigo-600 dark:text-indigo-400 font-semibold text-[10px] rounded px-2 py-0.5 border border-indigo-300 dark:border-indigo-700/80 w-32 focus:outline-none focus:ring-1 focus:ring-indigo-500 shrink-0"
+                            />
+                          )}
                         </div>
                       </div>
                     </div>
 
-                    {/* Dual Options & Status */}
+                    {/* Status + Action Buttons */}
                     <div className="flex items-center gap-2 shrink-0">
-                      {/* Status Badges */}
                       {isSent && (
                         <span className="flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-bold px-2 py-0.5 rounded bg-emerald-100/70 dark:bg-emerald-500/20">
                           <CheckCircle className="w-3.5 h-3.5" /> Sent
@@ -415,7 +436,6 @@ Stripe, recruiting@stripe.com, Software Developer`}
                         </span>
                       )}
 
-                      {/* Option 1: Load to Composer */}
                       <button
                         onClick={() => handleLoadItem(idx)}
                         disabled={isSending || isBatchSending}
@@ -425,7 +445,6 @@ Stripe, recruiting@stripe.com, Software Developer`}
                         Load
                       </button>
 
-                      {/* Option 2: Select & Send Simultaneously */}
                       {onSelectAndSendBatchItem && (
                         <button
                           onClick={() => handleSelectAndSendItem(idx)}
@@ -435,7 +454,7 @@ Stripe, recruiting@stripe.com, Software Developer`}
                               ? 'bg-emerald-600 hover:bg-emerald-500'
                               : 'bg-indigo-600 hover:bg-indigo-500'
                           }`}
-                          title="Select application from queue and send email simultaneously"
+                          title="Select & Send email immediately"
                         >
                           {isSending ? (
                             <Loader2 className="w-3 h-3 animate-spin" />
