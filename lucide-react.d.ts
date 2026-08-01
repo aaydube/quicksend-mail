@@ -29,6 +29,7 @@ declare module 'lucide-react' {
   export const FileText: React.ComponentType<IconProps>;
   export const BookmarkPlus: React.ComponentType<IconProps>;
   export const Eye: React.ComponentType<IconProps>;
+  export const EyeOff: React.ComponentType<IconProps>;
   export const Globe: React.ComponentType<IconProps>;
   export const Phone: React.ComponentType<IconProps>;
   export const X: React.ComponentType<IconProps>;

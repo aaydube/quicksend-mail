@@ -1,19 +1,22 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSession, signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { ShieldCheck, Mail, User, Lock, ArrowRight, CheckCircle2, KeyRound, Sparkles, RefreshCw, AlertCircle } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { ShieldCheck, Mail, User, Lock, ArrowRight, CheckCircle2, KeyRound, RefreshCw, AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
-export default function AuthPage() {
+function AuthPageContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // Mode: 'signin' or 'signup'
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   // Method: Default to 'password'
   const [method, setMethod] = useState<'otp' | 'password'>('password');
+  // Password Visibility State
+  const [showPassword, setShowPassword] = useState(false);
 
   // Form inputs (Empty by default)
   const [email, setEmail] = useState('');
@@ -29,12 +32,36 @@ export default function AuthPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+  // Read URL error parameters (e.g. ?error=Configuration) and format cleanly
+  useEffect(() => {
+    const urlError = searchParams?.get('error');
+    if (urlError) {
+      if (urlError === 'Configuration' || urlError === 'CredentialsSignin') {
+        setErrorMsg('Invalid email or password. If you do not have an account yet, please click "Sign Up" above.');
+      } else {
+        setErrorMsg(urlError);
+      }
+    }
+  }, [searchParams]);
+
   // Redirect if authenticated
   useEffect(() => {
     if (status === 'authenticated') {
       router.push('/');
     }
   }, [status, router]);
+
+  // Helper to translate NextAuth error codes into friendly user messages
+  const parseAuthError = (rawErr: string): string => {
+    if (!rawErr) return 'Authentication failed.';
+    if (rawErr === 'Configuration' || rawErr === 'CredentialsSignin' || rawErr.includes('Configuration')) {
+      return 'Invalid email or password. If you do not have an account yet, please click "Sign Up" above.';
+    }
+    if (rawErr.includes('Read more at')) {
+      return 'Invalid email or password. Please check your credentials or click Sign Up.';
+    }
+    return rawErr;
+  };
 
   // Request 6-digit OTP code
   const handleSendOTP = async (e: React.FormEvent) => {
@@ -93,7 +120,7 @@ export default function AuthPage() {
       });
 
       if (result?.error) {
-        setErrorMsg(result.error || 'Failed to verify OTP credentials.');
+        setErrorMsg(parseAuthError(result.error));
       } else {
         setSuccessMsg('Verification successful! Redirecting...');
         setTimeout(() => router.push('/'), 600);
@@ -127,11 +154,7 @@ export default function AuthPage() {
       });
 
       if (result?.error) {
-        if (result.error.includes('Read more at')) {
-          setErrorMsg('Invalid email or password. Please check your credentials or click Sign Up.');
-        } else {
-          setErrorMsg(result.error);
-        }
+        setErrorMsg(parseAuthError(result.error));
       } else {
         setSuccessMsg(authMode === 'signup' ? 'Account created successfully!' : 'Signed in successfully!');
         setTimeout(() => router.push('/'), 600);
@@ -252,14 +275,14 @@ export default function AuthPage() {
 
         {/* Error or Success Banners */}
         {errorMsg && (
-          <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-xs text-rose-700 dark:text-rose-300 font-medium flex items-start gap-2">
+          <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-xs text-rose-700 dark:text-rose-300 font-medium flex items-start gap-2.5 leading-relaxed">
             <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
             <span>{errorMsg}</span>
           </div>
         )}
 
         {successMsg && (
-          <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 text-xs text-emerald-700 dark:text-emerald-300 font-medium flex items-start gap-2">
+          <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 text-xs text-emerald-700 dark:text-emerald-300 font-medium flex items-start gap-2.5 leading-relaxed">
             <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
             <span>{successMsg}</span>
           </div>
@@ -283,13 +306,16 @@ export default function AuthPage() {
           <form onSubmit={handlePasswordAuth} className="space-y-4 text-xs">
             {authMode === 'signup' && (
               <div className="space-y-1.5">
-                <label className="block text-zinc-800 dark:text-zinc-300 font-semibold">
+                <label htmlFor="user-name" className="block text-zinc-800 dark:text-zinc-300 font-semibold">
                   Full Name <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
                   <User className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-3" />
                   <input
+                    id="user-name"
                     type="text"
+                    name="name"
+                    autoComplete="name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="e.g. Alex Rivers"
@@ -301,13 +327,16 @@ export default function AuthPage() {
             )}
 
             <div className="space-y-1.5">
-              <label className="block text-zinc-800 dark:text-zinc-300 font-semibold">
+              <label htmlFor="user-email" className="block text-zinc-800 dark:text-zinc-300 font-semibold">
                 Email Address <span className="text-rose-500">*</span>
               </label>
               <div className="relative">
                 <Mail className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-3" />
                 <input
+                  id="user-email"
                   type="email"
+                  name="email"
+                  autoComplete="username email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="e.g. alex@example.com"
@@ -318,19 +347,30 @@ export default function AuthPage() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-zinc-800 dark:text-zinc-300 font-semibold">
+              <label htmlFor="user-password" className="block text-zinc-800 dark:text-zinc-300 font-semibold">
                 Password <span className="text-rose-500">*</span>
               </label>
               <div className="relative">
                 <Lock className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-3" />
                 <input
-                  type="password"
+                  id="user-password"
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  autoComplete={authMode === 'signup' ? 'new-password' : 'current-password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••••••"
-                  className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 pl-9 pr-3.5 py-2.5 rounded-xl text-xs font-mono-code focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 pl-9 pr-10 py-2.5 rounded-xl text-xs font-mono-code focus:outline-none focus:border-indigo-500"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-2.5 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 
@@ -354,13 +394,16 @@ export default function AuthPage() {
           <form onSubmit={handleSendOTP} className="space-y-4 text-xs">
             {authMode === 'signup' && (
               <div className="space-y-1.5">
-                <label className="block text-zinc-800 dark:text-zinc-300 font-semibold">
+                <label htmlFor="otp-name" className="block text-zinc-800 dark:text-zinc-300 font-semibold">
                   Full Name <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
                   <User className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-3" />
                   <input
+                    id="otp-name"
                     type="text"
+                    name="name"
+                    autoComplete="name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="e.g. Alex Rivers"
@@ -372,13 +415,16 @@ export default function AuthPage() {
             )}
 
             <div className="space-y-1.5">
-              <label className="block text-zinc-800 dark:text-zinc-300 font-semibold">
+              <label htmlFor="otp-email" className="block text-zinc-800 dark:text-zinc-300 font-semibold">
                 Email Address <span className="text-rose-500">*</span>
               </label>
               <div className="relative">
                 <Mail className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-3" />
                 <input
+                  id="otp-email"
                   type="email"
+                  name="email"
+                  autoComplete="username email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="e.g. alex@example.com"
@@ -464,5 +510,19 @@ export default function AuthPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
+          <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+        </div>
+      }
+    >
+      <AuthPageContent />
+    </Suspense>
   );
 }
