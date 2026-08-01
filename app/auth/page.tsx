@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { ShieldCheck, Mail, User, Lock, ArrowRight, CheckCircle2, KeyRound, Sparkles, RefreshCw } from 'lucide-react';
+import { Mail, User, Lock, ArrowRight, CheckCircle2, KeyRound, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 
 export default function AuthPage() {
@@ -453,22 +453,6 @@ export default function AuthPage() {
             </button>
           </form>
         )}
-
-        {/* Feature Badges Footer */}
-        <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800 space-y-2 text-[11px] text-zinc-500 dark:text-zinc-400">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-            <span>1-Click Nodemailer Direct SMTP Dispatch</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-            <span>Automated Resume PDF Attachment</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-3.5 h-3.5 text-cyan-500 shrink-0" />
-            <span>Application History Tracker & Batch Queue</span>
-          </div>
-        </div>
       </div>
     </div>
   );
