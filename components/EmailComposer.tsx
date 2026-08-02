@@ -50,6 +50,10 @@ export default function EmailComposer({
   const salutationOptions: SalutationType[] = [
     "Hi Ma'am/Sir",
     "Dear Ma'am/Sir",
+    "Dear Ma'am",
+    "Dear Sir",
+    "Hi Ma'am",
+    "Hi Sir",
     "Dear Hiring Manager",
     "Hi Hiring Manager",
     "Dear Hiring Team",
@@ -152,7 +156,7 @@ export default function EmailComposer({
                 : 'bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
             }`}
           >
-            + Custom
+            {salutation === 'Custom' && customSalutation.trim() ? `Custom (${customSalutation.trim()})` : '+ Custom'}
           </button>
         </div>
 

@@ -202,7 +202,7 @@ export default function Home() {
   const activeGreeting = managerName.trim()
     ? `Dear ${managerName.trim()}`
     : salutation === 'Custom'
-    ? (customSalutation || "Dear Ma'am/Sir")
+    ? (customSalutation.trim() || "Dear Ma'am/Sir")
     : salutation;
 
   const currentTemplate =
@@ -220,8 +220,21 @@ export default function Home() {
     const targetEmail = overrideEmail !== undefined ? overrideEmail : recipientEmail;
     const targetRole = overrideRoleName !== undefined ? overrideRoleName : activeRoleName;
 
-    let compiled = rawText
-      .replace(/{greeting}|Dear Ma'am\/Sir/g, activeGreeting)
+    let compiled = rawText;
+
+    // Replace any preset salutations or {greeting} tag anywhere in text
+    compiled = compiled.replace(
+      /{greeting}|Dear Ma'am\/Sir|Hi Ma'am\/Sir|Dear Ma'am|Dear Sir|Hi Ma'am|Hi Sir|Dear Hiring Manager|Hi Hiring Manager|Dear Hiring Team|Hi Hiring Team/g,
+      activeGreeting
+    );
+
+    // Also replace opening line greeting if user edited the body or used custom greeting earlier
+    compiled = compiled.replace(
+      /^(?:{greeting}|(?:Dear|Hi|Hello|Respected|Greetings)\b[^\n,]*)(?=,|(?:\r?\n)|$)/i,
+      activeGreeting
+    );
+
+    compiled = compiled
       .replace(/{company}|\[Company Name\]|\[company\]/gi, targetCompany.trim() || '[Company Name]')
       .replace(/{role}|\[Role\]|\[role\]/gi, targetRole)
       .replace(/{manager}|\[Hiring Manager\]|\[manager\]/gi, managerName.trim() || 'Hiring Manager')

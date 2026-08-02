@@ -3,6 +3,10 @@ export type RoleType = 'Software Developer' | 'AI Engineer' | 'Full Stack Develo
 export type SalutationType = 
   | "Hi Ma'am/Sir" 
   | "Dear Ma'am/Sir" 
+  | "Dear Ma'am"
+  | "Dear Sir"
+  | "Hi Ma'am"
+  | "Hi Sir"
   | "Dear Hiring Manager" 
   | "Hi Hiring Manager" 
   | "Dear Hiring Team" 
